@@ -1,0 +1,11 @@
+- arrays
+- functions
+- objects
+- localStorage
+- i18n
+- canvas - paint(w, h)
+  - line(x1, y1, x2, y2, color), circle(x, y, r, color, filled?), rectangle(x, y, w, h, color, filled?), drawImage(filename), drawText(x, y, text, size, font), clear(color)
+  - let spr = addSprite(filename)
+    - spr.x, spr.y, spr.image
+  - delay(x) will wait for repaint, even if x = 0
+- sound (bxfr?)

@@ -1,7 +1,9 @@
 (function () {
   const starterCode = `let name = read("What's your name?")
+react("👋")
 print("Hi", name)
 let age = readNumber("How old are you?")
+react("👍")
 if (age >= 13) {
   print("You are a teenager.")
 } else {
@@ -666,6 +668,7 @@ while (countdown > 0) {
     constructor() {
       this.pendingRead = null;
       this.pendingDelay = null;
+      this.lastUserBubble = null;
     }
 
     print(...values) {
@@ -675,7 +678,29 @@ while (countdown > 0) {
 
     clear() {
       elements.messages.innerHTML = "";
+      this.lastUserBubble = null;
       return undefined;
+    }
+
+    react(value) {
+      if (!this.lastUserBubble || !this.lastUserBubble.isConnected) {
+        throw new Error("There is no user message to react to yet.");
+      }
+      const reaction = String(value ?? "");
+      if (!reaction.trim()) {
+        throw new Error("react(value) needs a visible reaction.");
+      }
+
+      const previous = this.lastUserBubble.querySelector(".reaction-chip");
+      if (previous) {
+        previous.remove();
+      }
+
+      const chip = document.createElement("span");
+      chip.className = "reaction-chip";
+      chip.textContent = reaction;
+      this.lastUserBubble.appendChild(chip);
+      return reaction;
     }
 
     delay(seconds) {
@@ -720,7 +745,7 @@ while (countdown > 0) {
       }
       const pending = this.pendingRead;
       const trimmed = raw.trim();
-      addMessage("user", raw);
+      this.lastUserBubble = addMessage("user", raw);
 
       if (pending.mode === "number") {
         const value = Number(trimmed.replace(",", "."));
@@ -986,6 +1011,7 @@ while (countdown > 0) {
     if (name === "read") return runtime.read(args[0] ?? "", "text", args.length > 0);
     if (name === "readNumber") return runtime.read(args[0] ?? "", "number", args.length > 0);
     if (name === "delay") return runtime.delay(args[0] ?? 1);
+    if (name === "react") return runtime.react(args[0] ?? "");
     if (name === "clear") return runtime.clear();
     if (name === "randomInt") {
       const min = Number(args[0]);
@@ -1009,6 +1035,7 @@ while (countdown > 0) {
   function runFresh() {
     runtime.cancel();
     elements.messages.innerHTML = "";
+    runtime.lastUserBubble = null;
     interpreter.resetEnv();
     try {
       interpreter.load(getSourceCode());
@@ -1248,6 +1275,7 @@ while (countdown > 0) {
   elements.resetButton.addEventListener("click", () => {
     runtime.cancel();
     elements.messages.innerHTML = "";
+    runtime.lastUserBubble = null;
     interpreter.resetEnv();
     interpreter.program = [];
     disableMessageBox();
