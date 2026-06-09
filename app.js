@@ -684,11 +684,13 @@ while (countdown > 0) {
 
     react(value) {
       if (!this.lastUserBubble || !this.lastUserBubble.isConnected) {
-        throw new Error("There is no user message to react to yet.");
+        addMessage("error", "There is no user message to react to yet.");
+        return undefined;
       }
       const reaction = String(value ?? "");
       if (!reaction.trim()) {
-        throw new Error("react(value) needs a visible reaction.");
+        addMessage("error", "react(value) needs a visible reaction.");
+        return undefined;
       }
 
       const previous = this.lastUserBubble.querySelector(".reaction-chip");
@@ -700,6 +702,7 @@ while (countdown > 0) {
       chip.className = "reaction-chip";
       chip.textContent = reaction;
       this.lastUserBubble.appendChild(chip);
+      elements.messages.scrollTop = elements.messages.scrollHeight;
       return reaction;
     }
 
