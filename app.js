@@ -618,13 +618,18 @@ print("You are", age, "years old")`;
 
   const runtime = new ChatRuntime();
   const interpreter = new Interpreter(runtime, new Environment());
+  let codeEditor = null;
+
+  function getSourceCode() {
+    return codeEditor ? codeEditor.getValue() : elements.source.value;
+  }
 
   function runFresh() {
     runtime.cancel();
     elements.messages.innerHTML = "";
     interpreter.resetEnv();
     try {
-      interpreter.load(elements.source.value);
+      interpreter.load(getSourceCode());
       addMessage("system", "Program started.");
       interpreter.runAll();
     } catch (error) {
@@ -638,7 +643,7 @@ print("You are", age, "years old")`;
       if (!interpreter.program.length || interpreter.position >= interpreter.program.length) {
         elements.messages.innerHTML = "";
         interpreter.resetEnv();
-        interpreter.load(elements.source.value);
+        interpreter.load(getSourceCode());
         addMessage("system", "Step mode started.");
       }
       interpreter.stepFromButton();
@@ -815,6 +820,19 @@ print("You are", age, "years old")`;
   }
 
   elements.source.value = starterCode;
+  codeEditor = CodeMirror.fromTextArea(elements.source, {
+    mode: "javascript",
+    theme: "material-darker",
+    lineNumbers: true,
+    lineWrapping: true,
+    tabSize: 2,
+    indentUnit: 2,
+    autofocus: true,
+    extraKeys: {
+      "Ctrl-Enter": runFresh,
+      "Cmd-Enter": runFresh,
+    },
+  });
   elements.runButton.addEventListener("click", runFresh);
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton.addEventListener("click", () => interpreter.stop());

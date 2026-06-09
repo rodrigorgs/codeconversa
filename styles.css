@@ -207,20 +207,31 @@ input:disabled {
   background: var(--accent-dark);
 }
 
-#source-editor {
+.CodeMirror {
   width: 100%;
   height: 100%;
-  resize: none;
-  border: 0;
   border-bottom: 1px solid var(--line);
-  outline: none;
-  padding: 16px;
   background: var(--code);
-  color: #e8eef5;
-  caret-color: #7dd3fc;
   line-height: 1.55;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 14px;
+}
+
+.CodeMirror-gutters {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.CodeMirror-linenumber {
+  color: rgba(232, 238, 245, 0.42);
+}
+
+.CodeMirror-cursor {
+  border-left-color: #7dd3fc;
+}
+
+.CodeMirror-focused {
+  outline: 2px solid rgba(15, 118, 110, 0.35);
+  outline-offset: -2px;
 }
 
 .repl {

@@ -5,10 +5,13 @@ A browser-based teaching environment for small JavaScript-like programs that beh
 ## Run
 
 ```sh
+npm install
 python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000`.
+
+The code editor uses CodeMirror, installed locally through npm so the page can run without a CDN dependency.
 
 ## Current Language
 
