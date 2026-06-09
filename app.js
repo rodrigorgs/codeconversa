@@ -2,7 +2,21 @@
   const starterCode = `let name = read("What's your name?")
 print("Hi", name)
 let age = readNumber("How old are you?")
-print("You are", age, "years old")`;
+if (age >= 13) {
+  print("You are a teenager.")
+} else {
+  print("You are", age, "years old.")
+}
+for (let i = 1; i <= 3; i++) {
+  print("Count", i)
+}
+let countdown = 3
+while (countdown > 0) {
+  print("Countdown", countdown)
+  countdown--
+}`;
+
+  const maxLoopIterations = 10000;
 
   const forbiddenWords = new Set([
     "async",
@@ -138,7 +152,7 @@ print("You are", age, "years old")`;
       }
 
       const pair = source.slice(index, index + 2);
-      if (["==", "!=", "<=", ">=", "&&", "||"].includes(pair)) {
+      if (["==", "!=", "<=", ">=", "&&", "||", "++", "--"].includes(pair)) {
         tokens.push({ type: "operator", value: pair });
         index += 2;
         continue;
@@ -245,13 +259,311 @@ print("You are", age, "years old")`;
     throw new Error(`Unexpected "${token.value || "end of expression"}".`);
   }
 
-  function splitStatements(source) {
-    const statements = [];
+  function parseStatement(line, lineNumber = 1) {
+    const declaration = line.match(/^(let|const|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(.+)$/);
+    if (declaration) {
+      const [, kind, name, expression] = declaration;
+      if (forbiddenWords.has(name)) {
+        throw new Error(`"${name}" cannot be used as a variable name.`);
+      }
+      return { type: "declaration", kind, name, expression: parseExpression(expression), source: line, lineNumber };
+    }
+
+    const increment = line.match(/^([A-Za-z_$][A-Za-z0-9_$]*)(\+\+|--)$/);
+    if (increment) {
+      const [, name, operator] = increment;
+      return { type: "increment", name, operator, source: line, lineNumber };
+    }
+
+    const assignment = line.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(.+)$/);
+    if (assignment) {
+      const [, name, expression] = assignment;
+      return { type: "assignment", name, expression: parseExpression(expression), source: line, lineNumber };
+    }
+
+    return { type: "expression", expression: parseExpression(line), source: line, lineNumber };
+  }
+
+  class ProgramParser {
+    constructor(source) {
+      this.source = source;
+      this.index = 0;
+    }
+
+    parseProgram() {
+      const statements = this.parseStatements(false);
+      this.skipWhitespaceAndComments();
+      if (!this.isAtEnd()) {
+        throw new Error(`Unexpected "${this.peek()}".`);
+      }
+      return statements;
+    }
+
+    parseStatements(stopAtBrace) {
+      const statements = [];
+      while (!this.isAtEnd()) {
+        this.skipWhitespaceAndComments();
+        if (this.isAtEnd()) {
+          break;
+        }
+        if (this.peek() === "}") {
+          if (stopAtBrace) {
+            break;
+          }
+          throw new Error("Unexpected closing brace.");
+        }
+        statements.push(this.parseNextStatement(statements.length + 1));
+      }
+      return statements;
+    }
+
+    parseNextStatement(lineNumber) {
+      if (this.matchWord("if")) {
+        return this.parseIf(lineNumber);
+      }
+      if (this.matchWord("while")) {
+        return this.parseWhile(lineNumber);
+      }
+      if (this.matchWord("for")) {
+        return this.parseFor(lineNumber);
+      }
+      return parseStatement(this.readSimpleStatement(), lineNumber);
+    }
+
+    parseIf(lineNumber) {
+      const condition = parseExpression(this.readParenthesized("if"));
+      const consequent = this.readBlock("if");
+      this.skipWhitespaceAndComments();
+      let alternate = [];
+      if (this.matchWord("else")) {
+        this.skipWhitespaceAndComments();
+        if (this.matchWord("if")) {
+          alternate = [this.parseIf(lineNumber)];
+        } else {
+          alternate = this.readBlock("else");
+        }
+      }
+      return {
+        type: "if",
+        condition,
+        consequent,
+        alternate,
+        source: "if (...)",
+        lineNumber,
+      };
+    }
+
+    parseWhile(lineNumber) {
+      const condition = parseExpression(this.readParenthesized("while"));
+      const body = this.readBlock("while");
+      return { type: "while", condition, body, source: "while (...)", lineNumber };
+    }
+
+    parseFor(lineNumber) {
+      const header = splitForHeader(this.readParenthesized("for"));
+      const [initSource, conditionSource, updateSource] = header;
+      const init = initSource.trim() ? parseStatement(initSource.trim(), lineNumber) : null;
+      const condition = conditionSource.trim() ? parseExpression(conditionSource.trim()) : { type: "literal", value: true };
+      const update = updateSource.trim() ? parseStatement(updateSource.trim(), lineNumber) : null;
+      const body = this.readBlock("for");
+      return { type: "for", init, condition, update, body, source: "for (...)", lineNumber };
+    }
+
+    readParenthesized(label) {
+      this.skipWhitespaceAndComments();
+      if (this.peek() !== "(") {
+        throw new Error(`${label} needs parentheses around its condition.`);
+      }
+      return this.readBalanced("(", ")");
+    }
+
+    readBlock(label) {
+      this.skipWhitespaceAndComments();
+      if (this.peek() !== "{") {
+        throw new Error(`${label} needs a block with braces.`);
+      }
+      this.index += 1;
+      const statements = this.parseStatements(true);
+      this.skipWhitespaceAndComments();
+      if (this.peek() !== "}") {
+        throw new Error(`Missing closing brace for ${label}.`);
+      }
+      this.index += 1;
+      this.consumeStatementSeparators();
+      return statements;
+    }
+
+    readSimpleStatement() {
+      let text = "";
+      let quote = null;
+      let escaped = false;
+      let parens = 0;
+
+      while (!this.isAtEnd()) {
+        const char = this.peek();
+
+        if (quote) {
+          text += char;
+          this.index += 1;
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === quote) {
+            quote = null;
+          }
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          quote = char;
+          text += char;
+          this.index += 1;
+          continue;
+        }
+
+        if (char === "(") {
+          parens += 1;
+          text += char;
+          this.index += 1;
+          continue;
+        }
+
+        if (char === ")") {
+          parens -= 1;
+          text += char;
+          this.index += 1;
+          continue;
+        }
+
+        if ((char === "\n" || char === ";") && parens === 0) {
+          this.index += 1;
+          break;
+        }
+
+        if (char === "}" && parens === 0) {
+          break;
+        }
+
+        text += char;
+        this.index += 1;
+      }
+
+      if (quote) {
+        throw new Error("Unclosed string.");
+      }
+
+      const statement = text.trim();
+      if (!statement) {
+        throw new Error("Expected a statement.");
+      }
+      return statement;
+    }
+
+    readBalanced(open, close) {
+      let text = "";
+      let depth = 0;
+      let quote = null;
+      let escaped = false;
+
+      while (!this.isAtEnd()) {
+        const char = this.peek();
+        this.index += 1;
+
+        if (quote) {
+          if (escaped) {
+            escaped = false;
+          } else if (char === "\\") {
+            escaped = true;
+          } else if (char === quote) {
+            quote = null;
+          }
+          text += char;
+          continue;
+        }
+
+        if (char === '"' || char === "'") {
+          quote = char;
+          text += char;
+          continue;
+        }
+
+        if (char === open) {
+          depth += 1;
+          if (depth > 1) {
+            text += char;
+          }
+          continue;
+        }
+
+        if (char === close) {
+          depth -= 1;
+          if (depth === 0) {
+            return text;
+          }
+          text += char;
+          continue;
+        }
+
+        text += char;
+      }
+
+      throw new Error(`Missing "${close}".`);
+    }
+
+    skipWhitespaceAndComments() {
+      while (!this.isAtEnd()) {
+        if (/\s/.test(this.peek())) {
+          this.index += 1;
+          continue;
+        }
+        if (this.source.slice(this.index, this.index + 2) === "//") {
+          while (!this.isAtEnd() && this.peek() !== "\n") {
+            this.index += 1;
+          }
+          continue;
+        }
+        break;
+      }
+    }
+
+    consumeStatementSeparators() {
+      while (!this.isAtEnd() && (this.peek() === ";" || this.peek() === "\n")) {
+        this.index += 1;
+      }
+    }
+
+    matchWord(word) {
+      this.skipWhitespaceAndComments();
+      if (this.source.slice(this.index, this.index + word.length) !== word) {
+        return false;
+      }
+      const before = this.source[this.index - 1] || "";
+      const after = this.source[this.index + word.length] || "";
+      if (/[A-Za-z0-9_$]/.test(before) || /[A-Za-z0-9_$]/.test(after)) {
+        return false;
+      }
+      this.index += word.length;
+      return true;
+    }
+
+    peek() {
+      return this.source[this.index];
+    }
+
+    isAtEnd() {
+      return this.index >= this.source.length;
+    }
+  }
+
+  function splitForHeader(header) {
+    const parts = [];
     let current = "";
     let quote = null;
     let escaped = false;
+    let parens = 0;
 
-    for (const char of source) {
+    for (const char of header) {
       if (quote) {
         current += char;
         if (escaped) {
@@ -270,8 +582,20 @@ print("You are", age, "years old")`;
         continue;
       }
 
-      if (char === "\n" || char === ";") {
-        pushStatement(statements, current);
+      if (char === "(") {
+        parens += 1;
+        current += char;
+        continue;
+      }
+
+      if (char === ")") {
+        parens -= 1;
+        current += char;
+        continue;
+      }
+
+      if (char === ";" && parens === 0) {
+        parts.push(current);
         current = "";
         continue;
       }
@@ -279,39 +603,11 @@ print("You are", age, "years old")`;
       current += char;
     }
 
-    if (quote) {
-      throw new Error("Unclosed string.");
+    parts.push(current);
+    if (parts.length !== 3) {
+      throw new Error("for needs three parts: start; condition; update.");
     }
-
-    pushStatement(statements, current);
-    return statements;
-  }
-
-  function pushStatement(statements, raw) {
-    const line = raw.trim();
-    if (!line || line.startsWith("//")) {
-      return;
-    }
-    statements.push(parseStatement(line, statements.length + 1));
-  }
-
-  function parseStatement(line, lineNumber) {
-    const declaration = line.match(/^(let|const|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(.+)$/);
-    if (declaration) {
-      const [, kind, name, expression] = declaration;
-      if (forbiddenWords.has(name)) {
-        throw new Error(`"${name}" cannot be used as a variable name.`);
-      }
-      return { type: "declaration", kind, name, expression: parseExpression(expression), source: line, lineNumber };
-    }
-
-    const assignment = line.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(.+)$/);
-    if (assignment) {
-      const [, name, expression] = assignment;
-      return { type: "assignment", name, expression: parseExpression(expression), source: line, lineNumber };
-    }
-
-    return { type: "expression", expression: parseExpression(line), source: line, lineNumber };
+    return parts;
   }
 
   function parseProgram(source) {
@@ -321,7 +617,7 @@ print("You are", age, "years old")`;
         throw new Error(`"${word}" is not available here. Programs in this lab use simple, synchronous-looking code.`);
       }
     }
-    return splitStatements(source);
+    return new ProgramParser(source).parseProgram();
   }
 
   class Environment {
@@ -527,6 +823,19 @@ print("You are", age, "years old")`;
       updateInspector(this, statement);
     }
 
+    async executeBlock(statements) {
+      let result = undefined;
+      for (const statement of statements) {
+        if (this.cancelled) {
+          break;
+        }
+        result = await this.execute(statement);
+        this.lastResult = result;
+        updateInspector(this, statement);
+      }
+      return result;
+    }
+
     async execute(statement) {
       if (statement.type === "declaration") {
         const value = await evaluate(statement.expression, this.env, this.runtime);
@@ -537,6 +846,49 @@ print("You are", age, "years old")`;
         const value = await evaluate(statement.expression, this.env, this.runtime);
         this.env.assign(statement.name, value);
         return value;
+      }
+      if (statement.type === "increment") {
+        const current = this.env.get(statement.name);
+        if (typeof current !== "number") {
+          throw new Error(`Variable "${statement.name}" must be a number to use ${statement.operator}.`);
+        }
+        const value = statement.operator === "++" ? current + 1 : current - 1;
+        this.env.assign(statement.name, value);
+        return value;
+      }
+      if (statement.type === "if") {
+        const condition = await evaluate(statement.condition, this.env, this.runtime);
+        return this.executeBlock(condition ? statement.consequent : statement.alternate);
+      }
+      if (statement.type === "while") {
+        let result = undefined;
+        let iterations = 0;
+        while ((await evaluate(statement.condition, this.env, this.runtime)) && !this.cancelled) {
+          iterations += 1;
+          if (iterations > maxLoopIterations) {
+            throw new Error(`Loop stopped after ${maxLoopIterations} iterations.`);
+          }
+          result = await this.executeBlock(statement.body);
+        }
+        return result;
+      }
+      if (statement.type === "for") {
+        let result = undefined;
+        let iterations = 0;
+        if (statement.init) {
+          await this.execute(statement.init);
+        }
+        while ((await evaluate(statement.condition, this.env, this.runtime)) && !this.cancelled) {
+          iterations += 1;
+          if (iterations > maxLoopIterations) {
+            throw new Error(`Loop stopped after ${maxLoopIterations} iterations.`);
+          }
+          result = await this.executeBlock(statement.body);
+          if (statement.update && !this.cancelled) {
+            await this.execute(statement.update);
+          }
+        }
+        return result;
       }
       return evaluate(statement.expression, this.env, this.runtime);
     }

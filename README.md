@@ -21,6 +21,9 @@ The app intentionally runs a beginner subset through its own interpreter instead
 - assignments
 - strings, numbers, booleans, and `null`
 - arithmetic and comparison expressions
+- `if (...) { ... } else { ... }`
+- `while (...) { ... }`
+- `for (let i = 0; i < 3; i++) { ... }`
 - calls to the built-in teaching functions
 
 Available built-ins:
