@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Intro Prog Chat Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Intro Prog Chat Lab</h1>
+          <p>Write simple JavaScript-like programs that become conversational apps.</p>
+        </div>
+        <div class="topbar-actions" role="group" aria-label="Pane visibility">
+          <button class="icon-button" id="toggle-left" title="Toggle editor pane" aria-pressed="true">⌘</button>
+          <button class="icon-button" id="toggle-middle" title="Toggle app pane" aria-pressed="true">▣</button>
+          <button class="icon-button" id="toggle-right" title="Toggle inspector pane" aria-pressed="true">≡</button>
+        </div>
+      </header>
+
+      <main class="workspace" id="workspace">
+        <section class="pane left-pane" data-pane="left" aria-label="Code editor and REPL">
+          <div class="pane-header">
+            <h2>Code</h2>
+            <div class="run-controls">
+              <button id="run-button">Run</button>
+              <button id="step-button">Step</button>
+              <button id="stop-button">Stop</button>
+              <button id="reset-button">Reset</button>
+            </div>
+          </div>
+          <textarea id="source-editor" spellcheck="false" aria-label="Source code editor"></textarea>
+          <div class="repl">
+            <div class="repl-log" id="repl-log" aria-live="polite"></div>
+            <form class="repl-input" id="repl-form">
+              <span aria-hidden="true">&gt;</span>
+              <input id="repl-command" autocomplete="off" spellcheck="false" aria-label="REPL command">
+              <button id="repl-run" type="submit">Run</button>
+            </form>
+          </div>
+        </section>
+
+        <div class="resizer" data-resizer="left" title="Resize panes"></div>
+
+        <section class="pane chat-pane" data-pane="middle" aria-label="Conversation app">
+          <div class="phone-frame">
+            <div class="chat-header">
+              <div class="avatar" aria-hidden="true">JS</div>
+              <div>
+                <h2>Student App</h2>
+                <p id="runner-status">Ready</p>
+              </div>
+            </div>
+            <div class="messages" id="messages" aria-live="polite"></div>
+            <form class="message-box" id="message-form">
+              <input id="message-input" autocomplete="off" placeholder="Run a program that asks a question..." disabled>
+              <button id="send-button" disabled>Send</button>
+            </form>
+          </div>
+        </section>
+
+        <div class="resizer" data-resizer="right" title="Resize panes"></div>
+
+        <aside class="pane inspector-pane" data-pane="right" aria-label="Inspector">
+          <div class="pane-header">
+            <h2>Inspector</h2>
+          </div>
+          <div class="inspector-section">
+            <h3>Variables</h3>
+            <dl id="variables"></dl>
+          </div>
+          <div class="inspector-section">
+            <h3>Execution</h3>
+            <div class="state-list" id="execution-state"></div>
+          </div>
+          <div class="inspector-section">
+            <h3>Help</h3>
+            <ul class="help-list">
+              <li><code>print(...values)</code></li>
+              <li><code>read(question)</code></li>
+              <li><code>readNumber(question)</code></li>
+              <li><code>randomInt(min, max)</code></li>
+              <li><code>clear()</code></li>
+            </ul>
+          </div>
+        </aside>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
