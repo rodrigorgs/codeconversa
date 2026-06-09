@@ -691,23 +691,23 @@ while (countdown > 0) {
         const timeoutId = window.setTimeout(() => {
           typingBubble.remove();
           this.pendingDelay = null;
+          setStatus("Ready");
           resolve(undefined);
         }, duration * 1000);
         this.pendingDelay = { timeoutId, typingBubble, reject };
       });
     }
 
-    read(question, mode) {
+    read(question, mode, hasQuestion) {
       if (this.pendingRead) {
         throw new Error("The program is already waiting for an answer.");
       }
 
-      addMessage("app", String(question ?? ""));
+      if (hasQuestion) {
+        addMessage("app", String(question ?? ""));
+      }
       setStatus(mode === "number" ? "Waiting for a number" : "Waiting for an answer");
-      elements.messageInput.disabled = false;
-      elements.sendButton.disabled = false;
-      elements.messageInput.placeholder = mode === "number" ? "Type a number..." : "Type your answer...";
-      elements.messageInput.focus();
+      showMessageBox(mode === "number" ? "Type a number..." : "Type your answer...");
 
       return new Promise((resolve, reject) => {
         this.pendingRead = { mode, resolve, reject };
@@ -731,12 +731,14 @@ while (countdown > 0) {
         }
         this.pendingRead = null;
         disableMessageBox();
+        setStatus("Ready");
         pending.resolve(value);
         return;
       }
 
       this.pendingRead = null;
       disableMessageBox();
+      setStatus("Ready");
       pending.resolve(raw);
     }
 
@@ -805,7 +807,7 @@ while (countdown > 0) {
           await this.stepOnce();
         }
         if (!this.cancelled) {
-          setStatus("Done");
+          setStatus("Ready");
           addMessage("system", "Program finished.");
         }
       } catch (error) {
@@ -827,9 +829,9 @@ while (countdown > 0) {
       try {
         if (this.position < this.program.length) {
           await this.stepOnce();
-          setStatus(this.position >= this.program.length ? "Done" : "Ready");
+          setStatus("Ready");
         } else {
-          setStatus("Done");
+          setStatus("Ready");
         }
       } catch (error) {
         addMessage("error", error.message);
@@ -981,8 +983,8 @@ while (countdown > 0) {
 
   function callBuiltin(name, args, runtime) {
     if (name === "print") return runtime.print(...args);
-    if (name === "read") return runtime.read(args[0] ?? "", "text");
-    if (name === "readNumber") return runtime.read(args[0] ?? "", "number");
+    if (name === "read") return runtime.read(args[0] ?? "", "text", args.length > 0);
+    if (name === "readNumber") return runtime.read(args[0] ?? "", "number", args.length > 0);
     if (name === "delay") return runtime.delay(args[0] ?? 1);
     if (name === "clear") return runtime.clear();
     if (name === "randomInt") {
@@ -1088,6 +1090,17 @@ while (countdown > 0) {
     elements.sendButton.disabled = true;
     elements.messageInput.value = "";
     elements.messageInput.placeholder = "Run a program that asks a question...";
+    elements.messageForm.classList.add("is-hidden");
+    elements.messageForm.classList.remove("is-visible");
+  }
+
+  function showMessageBox(placeholder) {
+    elements.messageInput.disabled = false;
+    elements.sendButton.disabled = false;
+    elements.messageInput.placeholder = placeholder;
+    elements.messageForm.classList.remove("is-hidden");
+    elements.messageForm.classList.add("is-visible");
+    window.requestAnimationFrame(() => elements.messageInput.focus());
   }
 
   function setStatus(status) {

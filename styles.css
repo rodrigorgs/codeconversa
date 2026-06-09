@@ -410,6 +410,42 @@ input:disabled {
   padding: 12px;
   background: #f6f1eb;
   border-top: 1px solid #d4c8bb;
+  max-height: 86px;
+  opacity: 1;
+  overflow: hidden;
+  transform: translateY(0);
+  transition:
+    max-height 180ms ease,
+    opacity 180ms ease,
+    padding 180ms ease,
+    border-width 180ms ease,
+    transform 220ms ease;
+}
+
+.message-box.is-hidden {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(100%);
+}
+
+.message-box.is-visible {
+  animation: input-rise 220ms ease-out;
+}
+
+@keyframes input-rise {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-box input {
