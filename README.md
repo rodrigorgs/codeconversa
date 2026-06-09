@@ -31,6 +31,7 @@ Available built-ins:
 - `print(...values)`
 - `read(question)`
 - `readNumber(question)`
+- `delay(seconds)`
 - `randomInt(min, max)`
 - `clear()`
 

@@ -8,6 +8,7 @@ if (age >= 13) {
   print("You are", age, "years old.")
 }
 for (let i = 1; i <= 3; i++) {
+  delay(1)
   print("Count", i)
 }
 let countdown = 3
@@ -664,6 +665,7 @@ while (countdown > 0) {
   class ChatRuntime {
     constructor() {
       this.pendingRead = null;
+      this.pendingDelay = null;
     }
 
     print(...values) {
@@ -674,6 +676,25 @@ while (countdown > 0) {
     clear() {
       elements.messages.innerHTML = "";
       return undefined;
+    }
+
+    delay(seconds) {
+      const duration = Number(seconds);
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new Error("delay(seconds) needs a number of seconds.");
+      }
+
+      const typingBubble = addTypingBubble();
+      setStatus("Typing");
+
+      return new Promise((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          typingBubble.remove();
+          this.pendingDelay = null;
+          resolve(undefined);
+        }, duration * 1000);
+        this.pendingDelay = { timeoutId, typingBubble, reject };
+      });
     }
 
     read(question, mode) {
@@ -720,13 +741,19 @@ while (countdown > 0) {
     }
 
     cancel() {
-      if (!this.pendingRead) {
-        return;
+      if (this.pendingRead) {
+        const pending = this.pendingRead;
+        this.pendingRead = null;
+        disableMessageBox();
+        pending.reject(new Error("Program stopped."));
       }
-      const pending = this.pendingRead;
-      this.pendingRead = null;
-      disableMessageBox();
-      pending.reject(new Error("Program stopped."));
+      if (this.pendingDelay) {
+        const pending = this.pendingDelay;
+        window.clearTimeout(pending.timeoutId);
+        pending.typingBubble.remove();
+        this.pendingDelay = null;
+        pending.reject(new Error("Program stopped."));
+      }
     }
   }
 
@@ -956,6 +983,7 @@ while (countdown > 0) {
     if (name === "print") return runtime.print(...args);
     if (name === "read") return runtime.read(args[0] ?? "", "text");
     if (name === "readNumber") return runtime.read(args[0] ?? "", "number");
+    if (name === "delay") return runtime.delay(args[0] ?? 1);
     if (name === "clear") return runtime.clear();
     if (name === "randomInt") {
       const min = Number(args[0]);
@@ -1029,6 +1057,22 @@ while (countdown > 0) {
     bubble.textContent = text;
     elements.messages.appendChild(bubble);
     elements.messages.scrollTop = elements.messages.scrollHeight;
+    return bubble;
+  }
+
+  function addTypingBubble() {
+    const bubble = document.createElement("div");
+    bubble.className = "bubble app typing-bubble";
+    bubble.setAttribute("aria-label", "Computer is typing");
+    for (let index = 0; index < 3; index += 1) {
+      const dot = document.createElement("span");
+      dot.textContent = ".";
+      dot.style.animationDelay = `${index * 0.16}s`;
+      bubble.appendChild(dot);
+    }
+    elements.messages.appendChild(bubble);
+    elements.messages.scrollTop = elements.messages.scrollHeight;
+    return bubble;
   }
 
   function addReplEntry(text, error = false) {

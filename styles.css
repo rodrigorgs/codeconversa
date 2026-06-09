@@ -373,6 +373,36 @@ input:disabled {
   color: var(--danger);
 }
 
+.typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 44px;
+  padding: 9px 12px;
+  color: var(--muted);
+}
+
+.typing-bubble span {
+  display: inline-block;
+  font-size: 20px;
+  line-height: 0.7;
+  animation: typing-dot 0.95s infinite ease-in-out;
+}
+
+@keyframes typing-dot {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
 .message-box {
   display: grid;
   grid-template-columns: 1fr auto;
