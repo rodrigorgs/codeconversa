@@ -20,6 +20,7 @@ The app intentionally runs a beginner subset through its own interpreter instead
 - `let`, `const`, and `var` declarations
 - assignments
 - strings, numbers, booleans, and `null`
+- array literals with square brackets, such as `["Yes", "No"]`
 - arithmetic and comparison expressions
 - `if (...) { ... } else { ... }`
 - `while (...) { ... }`
@@ -31,6 +32,7 @@ Available built-ins:
 - `print(...values)`
 - `read(question)`
 - `readNumber(question)`
+- `readChoice(question, options)`
 - `react(value)`
 - `delay(seconds)`
 - `randomInt(min, max)`

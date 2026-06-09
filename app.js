@@ -17,7 +17,10 @@ let countdown = 3
 while (countdown > 0) {
   print("Countdown", countdown)
   countdown--
-}`;
+}
+let mood = readChoice("How are you feeling?", ["Great", "Okay", "Tired"])
+react("✅")
+print("Mood:", mood)`;
 
   const maxLoopIterations = 10000;
 
@@ -41,6 +44,7 @@ while (countdown > 0) {
     source: document.getElementById("source-editor"),
     messages: document.getElementById("messages"),
     messageForm: document.getElementById("message-form"),
+    choiceList: document.getElementById("choice-list"),
     messageInput: document.getElementById("message-input"),
     sendButton: document.getElementById("send-button"),
     runButton: document.getElementById("run-button"),
@@ -161,7 +165,7 @@ while (countdown > 0) {
         continue;
       }
 
-      if ("+-*/%<>=!,()".includes(char)) {
+      if ("+-*/%<>=!,()[]".includes(char)) {
         tokens.push({ type: "operator", value: char });
         index += 1;
         continue;
@@ -257,6 +261,17 @@ while (countdown > 0) {
       const expression = parseBinary(stream, 0);
       stream.expect(")");
       return expression;
+    }
+
+    if (token.value === "[") {
+      const elements = [];
+      if (!stream.match("]")) {
+        do {
+          elements.push(parseBinary(stream, 0));
+        } while (stream.match(","));
+        stream.expect("]");
+      }
+      return { type: "array", elements };
     }
 
     throw new Error(`Unexpected "${token.value || "end of expression"}".`);
@@ -687,7 +702,7 @@ while (countdown > 0) {
         addMessage("error", "There is no user message to react to yet.");
         return undefined;
       }
-      const reaction = String(value ?? "");
+      const reaction = String(value ?? "").trim();
       if (!reaction.trim()) {
         addMessage("error", "react(value) needs a visible reaction.");
         return undefined;
@@ -700,6 +715,9 @@ while (countdown > 0) {
 
       const chip = document.createElement("span");
       chip.className = "reaction-chip";
+      if (getGraphemeCount(reaction) === 1) {
+        chip.classList.add("is-single");
+      }
       chip.textContent = reaction;
       this.lastUserBubble.appendChild(chip);
       elements.messages.scrollTop = elements.messages.scrollHeight;
@@ -742,6 +760,30 @@ while (countdown > 0) {
       });
     }
 
+    readChoice(question, options, hasQuestion) {
+      if (this.pendingRead) {
+        throw new Error("The program is already waiting for an answer.");
+      }
+
+      if (!Array.isArray(options)) {
+        throw new Error("readChoice(question, options) needs options in square brackets, like [\"Yes\", \"No\"].");
+      }
+
+      if (!options.length) {
+        throw new Error("readChoice needs at least one option.");
+      }
+
+      if (hasQuestion) {
+        addMessage("app", String(question ?? ""));
+      }
+      setStatus("Waiting for a choice");
+
+      return new Promise((resolve, reject) => {
+        this.pendingRead = { mode: "choice", resolve, reject };
+        showChoiceBox(options, (value) => this.receiveChoice(value));
+      });
+    }
+
     receive(raw) {
       if (!this.pendingRead) {
         return;
@@ -768,6 +810,18 @@ while (countdown > 0) {
       disableMessageBox();
       setStatus("Ready");
       pending.resolve(raw);
+    }
+
+    receiveChoice(value) {
+      if (!this.pendingRead || this.pendingRead.mode !== "choice") {
+        return;
+      }
+      const pending = this.pendingRead;
+      this.lastUserBubble = addMessage("user", String(value));
+      this.pendingRead = null;
+      disableMessageBox();
+      setStatus("Ready");
+      pending.resolve(value);
     }
 
     cancel() {
@@ -991,6 +1045,14 @@ while (countdown > 0) {
       return callBuiltin(name, args, runtime);
     }
 
+    if (node.type === "array") {
+      const values = [];
+      for (const element of node.elements) {
+        values.push(await evaluate(element, env, runtime));
+      }
+      return values;
+    }
+
     throw new Error(`Cannot evaluate "${node.type}".`);
   }
 
@@ -1013,6 +1075,7 @@ while (countdown > 0) {
     if (name === "print") return runtime.print(...args);
     if (name === "read") return runtime.read(args[0] ?? "", "text", args.length > 0);
     if (name === "readNumber") return runtime.read(args[0] ?? "", "number", args.length > 0);
+    if (name === "readChoice") return runtime.readChoice(args[0] ?? "", args[1], args.length > 0);
     if (name === "delay") return runtime.delay(args[0] ?? 1);
     if (name === "react") return runtime.react(args[0] ?? "");
     if (name === "clear") return runtime.clear();
@@ -1107,6 +1170,14 @@ while (countdown > 0) {
     return bubble;
   }
 
+  function getGraphemeCount(value) {
+    if (window.Intl && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(segmenter.segment(value)).length;
+    }
+    return Array.from(value).length;
+  }
+
   function addReplEntry(text, error = false) {
     const entry = document.createElement("div");
     entry.className = `repl-entry${error ? " error" : ""}`;
@@ -1120,17 +1191,43 @@ while (countdown > 0) {
     elements.sendButton.disabled = true;
     elements.messageInput.value = "";
     elements.messageInput.placeholder = "Run a program that asks a question...";
+    elements.choiceList.innerHTML = "";
+    elements.messageForm.classList.remove("choice-mode");
     elements.messageForm.classList.add("is-hidden");
     elements.messageForm.classList.remove("is-visible");
   }
 
   function showMessageBox(placeholder) {
+    elements.choiceList.innerHTML = "";
+    elements.messageForm.classList.remove("choice-mode");
     elements.messageInput.disabled = false;
     elements.sendButton.disabled = false;
     elements.messageInput.placeholder = placeholder;
     elements.messageForm.classList.remove("is-hidden");
     elements.messageForm.classList.add("is-visible");
     window.requestAnimationFrame(() => elements.messageInput.focus());
+  }
+
+  function showChoiceBox(options, onChoose) {
+    elements.messageInput.disabled = true;
+    elements.sendButton.disabled = true;
+    elements.messageInput.value = "";
+    elements.choiceList.innerHTML = "";
+
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.className = "choice-button";
+      button.type = "button";
+      button.textContent = String(option);
+      button.title = String(option);
+      button.addEventListener("click", () => onChoose(option), { once: true });
+      elements.choiceList.appendChild(button);
+    }
+
+    elements.messageForm.classList.add("choice-mode");
+    elements.messageForm.classList.remove("is-hidden");
+    elements.messageForm.classList.add("is-visible");
+    window.requestAnimationFrame(() => elements.choiceList.querySelector("button")?.focus());
   }
 
   function setStatus(status) {

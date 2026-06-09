@@ -1,6 +1,11 @@
-- arrays
-- functions
-- objects
+- global variables
+- repl: up/down arrow to recover command history
+- profile(img) to change profile picture (img can be a URL or an emoji)
+- title(str) to change conversation title
+- language features
+  - arrays
+  - functions
+  - objects
 - localStorage
 - i18n
 - canvas - paint(w, h)

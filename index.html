@@ -57,6 +57,7 @@
             </div>
             <div class="messages" id="messages" aria-live="polite"></div>
             <form class="message-box is-hidden" id="message-form">
+              <div class="choice-list" id="choice-list" aria-label="Choices"></div>
               <input id="message-input" autocomplete="off" placeholder="Run a program that asks a question..." disabled>
               <button id="send-button" disabled>Send</button>
             </form>
@@ -83,6 +84,7 @@
               <li><code>print(...values)</code></li>
               <li><code>read(question)</code></li>
               <li><code>readNumber(question)</code></li>
+              <li><code>readChoice(question, [options])</code></li>
               <li><code>react(value)</code></li>
               <li><code>delay(seconds)</code></li>
               <li><code>if (...) { ... } else { ... }</code></li>
@@ -97,6 +99,6 @@
     </div>
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
-    <script src="app.js?v=react-2"></script>
+    <script src="app.js?v=choice-1"></script>
   </body>
 </html>
