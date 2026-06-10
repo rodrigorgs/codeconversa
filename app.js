@@ -36,7 +36,9 @@ drawLine(20, 20, 220, 140, "#2563eb")
 drawLine(220, 20, 20, 140, "#dc2626")
 drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
-  const sourceStorageKey = "intro-prog.source";
+  const appStoragePrefix = "intro-prog.";
+  const sourceStorageKey = `${appStoragePrefix}source`;
+  const userStoragePrefix = `${appStoragePrefix}user.`;
   const examples = [
     {
       id: "default",
@@ -1570,6 +1572,67 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     return rgba;
   }
 
+  function getUserStorageKey(key) {
+    const name = String(key ?? "").trim();
+    if (!name) {
+      throw new Error("Storage keys cannot be empty.");
+    }
+    return `${userStoragePrefix}${name}`;
+  }
+
+  function saveValue(key, value) {
+    try {
+      window.localStorage.setItem(getUserStorageKey(key), JSON.stringify(value));
+      return value;
+    } catch {
+      throw new Error("Could not save this value in localStorage.");
+    }
+  }
+
+  function loadValue(key, defaultValue) {
+    let raw = null;
+    try {
+      raw = window.localStorage.getItem(getUserStorageKey(key));
+    } catch {
+      throw new Error("Could not load this value from localStorage.");
+    }
+    if (raw === null) {
+      return defaultValue;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  function deleteValue(key) {
+    try {
+      window.localStorage.removeItem(getUserStorageKey(key));
+      return undefined;
+    } catch {
+      throw new Error("Could not delete this value from localStorage.");
+    }
+  }
+
+  function deleteAllValues() {
+    try {
+      const keys = [];
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (key && key.startsWith(userStoragePrefix)) {
+          keys.push(key);
+        }
+      }
+      for (const key of keys) {
+        window.localStorage.removeItem(key);
+      }
+      return undefined;
+    } catch {
+      throw new Error("Could not delete saved values from localStorage.");
+    }
+  }
+
   const stringMethods = {
     toUpperCase: (text) => text.toUpperCase(),
     toLowerCase: (text) => text.toLowerCase(),
@@ -1635,6 +1698,10 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     if (name === "fillRect") return runtime.fillRect(args[0], args[1], args[2], args[3], args[4]);
     if (name === "floodFill") return runtime.floodFill(args[0], args[1], args[2]);
     if (name === "drawText") return runtime.drawText(args[0], args[1], args[2], args[3]);
+    if (name === "save") return saveValue(args[0], args[1]);
+    if (name === "load") return loadValue(args[0], args[1]);
+    if (name === "delete") return deleteValue(args[0]);
+    if (name === "deleteAll") return deleteAllValues();
     if (name === "randomInt") {
       const min = Number(args[0]);
       const max = Number(args[1]);

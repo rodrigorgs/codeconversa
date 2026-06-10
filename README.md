@@ -47,11 +47,17 @@ Available built-ins:
 - `drawRect(x, y, width, height, color)` and `fillRect(x, y, width, height, color)`
 - `floodFill(x, y, color)`
 - `drawText(x, y, text, options)`
+- `save(key, value)`
+- `load(key, defaultValue)`
+- `delete(key)`
+- `deleteAll()`
 - `randomInt(min, max)`
 
 `canvas(width, height)` sends a canvas message to the chat and remembers it as the current drawing target. `clear(color)` paints the current canvas with a CSS color string, or makes it transparent when no color is provided. `drawLine(...)` draws on the most recent canvas. Large canvases are visually scaled to fit the chat while keeping their original coordinate system.
 
 `drawText` accepts an options object with `size`, `color`, and `font`, for example `drawText(20, 50, "Hi", { size: 28, color: "blue", font: "serif" })`.
+
+Student storage functions use a protected namespace in `localStorage`. `save`, `load`, `delete`, and `deleteAll` can only access keys under that namespace, so app-owned values such as the saved source code are not exposed to student programs.
 
 Supported string methods:
 
