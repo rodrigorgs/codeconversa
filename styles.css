@@ -232,6 +232,29 @@ input:disabled {
   text-align: center;
 }
 
+.theme-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.theme-control select {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
 .icon-action {
   width: 36px;
   height: 36px;
@@ -320,6 +343,28 @@ input:disabled {
 .CodeMirror-focused {
   outline: 2px solid rgba(15, 118, 110, 0.35);
   outline-offset: -2px;
+}
+
+.CodeMirror.cm-s-default {
+  background: #fffdfa;
+  color: #1f2937;
+}
+
+.CodeMirror.cm-s-default .CodeMirror-gutters {
+  background: #f7f3ec;
+  border-right: 1px solid var(--line);
+}
+
+.CodeMirror.cm-s-default .CodeMirror-linenumber {
+  color: #8a8176;
+}
+
+.CodeMirror.cm-s-default .CodeMirror-cursor {
+  border-left-color: var(--accent);
+}
+
+.CodeMirror.cm-s-default .CodeMirror-selected {
+  background: #cdeee8;
 }
 
 .emoji-popover {

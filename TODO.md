@@ -1,9 +1,6 @@
 - Use say/read or say/listen or send/receive instead of print/read?
-- sound (bxfr?)
-- emoji picker
-- light theme for code editor
 - highlight variable with an animation when the variable is created
-- highlighted line being run in the code editor
+- highlight the line being run in the code editor
 - buttons to insert structures such as while (true) { ... delay(1) }, if, if/else, if/elseif/else
 - error feedback while writing (e.g., unmatched parens)
 - global variables (doesn't need to use let)
@@ -15,17 +12,9 @@
   - functions
   - objects
 - i18n
-- canvas(w, h) - send a message with a canvas
-  - drawCircle(x, y, r, color) / fillCircle
-  - drawRect(x, y, w, h, color) / fillRect
-  - floodFill(x, y, color)
-  - drawText(x, y, text, {size, color, font}) -- the last parameter is a JS object that can contain the keys "size", "color", and "font".
-
-
+- sprites and games
   - let spr = addSprite(filename)
     - spr.x, spr.y, spr.image
-  - delay(x) will wait for repaint, even if x = 0
   - image editor (a la TIC-80)
   - functions to read key state
   - concurrent model (one script per actor/sprite?), similar to Scratch
-- sound (bxfr?)

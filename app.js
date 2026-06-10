@@ -38,6 +38,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   const appStoragePrefix = "intro-prog.";
   const sourceStorageKey = `${appStoragePrefix}source`;
+  const editorThemeStorageKey = `${appStoragePrefix}editorTheme`;
   const userStoragePrefix = `${appStoragePrefix}user.`;
   const examples = [
     {
@@ -87,6 +88,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     runButton: document.getElementById("run-button"),
     stepButton: document.getElementById("step-button"),
     stopButton: document.getElementById("stop-button"),
+    editorTheme: document.getElementById("editor-theme"),
     emojiButton: document.getElementById("emoji-button"),
     emojiPopover: document.getElementById("emoji-popover"),
     emojiPicker: document.getElementById("emoji-picker"),
@@ -1873,6 +1875,29 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
   }
 
+  function loadEditorTheme() {
+    try {
+      const theme = window.localStorage.getItem(editorThemeStorageKey);
+      return theme === "default" || theme === "material-darker" ? theme : "material-darker";
+    } catch {
+      return "material-darker";
+    }
+  }
+
+  function saveEditorTheme(theme) {
+    try {
+      window.localStorage.setItem(editorThemeStorageKey, theme);
+    } catch {
+      addReplEntry("Could not save the editor theme in this browser.", true);
+    }
+  }
+
+  function applyEditorTheme(theme) {
+    codeEditor.setOption("theme", theme);
+    elements.editorTheme.value = theme;
+    saveEditorTheme(theme);
+  }
+
   function updateSaveStatus() {
     if (!elements.sourceSaveStatus) {
       return;
@@ -2251,9 +2276,11 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   setupExamples();
   lastSavedSource = loadSavedSource();
   elements.source.value = lastSavedSource ?? starterCode;
+  const savedEditorTheme = loadEditorTheme();
+  elements.editorTheme.value = savedEditorTheme;
   codeEditor = CodeMirror.fromTextArea(elements.source, {
     mode: "javascript",
-    theme: "material-darker",
+    theme: savedEditorTheme,
     lineNumbers: true,
     lineWrapping: true,
     tabSize: 2,
@@ -2268,6 +2295,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   });
   codeEditor.on("change", updateSaveStatus);
   setupEmojiPicker();
+  elements.editorTheme.addEventListener("change", () => applyEditorTheme(elements.editorTheme.value));
   elements.runButton.addEventListener("click", runFresh);
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton.addEventListener("click", () => interpreter.stop());
