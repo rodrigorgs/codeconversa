@@ -86,6 +86,29 @@ input:disabled {
   font-size: 13px;
 }
 
+.topbar-tutorials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.topbar-tutorials a {
+  border: 1px solid #0f766e;
+  border-radius: 7px;
+  padding: 8px 12px;
+  background: #e6fffb;
+  color: #0f4f4a;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.topbar-tutorials a:hover {
+  background: #ccfbf1;
+}
+
 .topbar-actions {
   display: flex;
   gap: 8px;
@@ -746,5 +769,13 @@ code {
 
   .topbar {
     align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .topbar-tutorials {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
   }
 }
