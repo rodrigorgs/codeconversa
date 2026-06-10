@@ -34,12 +34,16 @@
               <span class="save-status" id="source-save-status" aria-live="polite"></span>
               <button id="save-button" type="button" title="Save source code">Save</button>
               <button id="load-example-button" type="button">Example</button>
+              <button class="icon-action" id="emoji-button" type="button" aria-label="Insert emoji" title="Insert emoji" aria-expanded="false">🙂</button>
               <button class="icon-action" id="run-button" aria-label="Run" title="Run and save">▶</button>
               <button class="icon-action" id="step-button" aria-label="Step" title="Step">⏭</button>
               <button class="icon-action" id="stop-button" aria-label="Stop" title="Stop">■</button>
             </div>
           </div>
           <textarea id="source-editor" spellcheck="false" aria-label="Source code editor"></textarea>
+          <div class="emoji-popover is-hidden" id="emoji-popover">
+            <emoji-picker id="emoji-picker" class="light" data-source="node_modules/emoji-picker-element-data/en/emojibase/data.json"></emoji-picker>
+          </div>
           <div class="repl">
             <div class="repl-log" id="repl-log" aria-live="polite"></div>
             <form class="repl-input" id="repl-form">
@@ -134,6 +138,7 @@
     </dialog>
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
+    <script type="module" src="node_modules/emoji-picker-element/index.js"></script>
     <script src="node_modules/jsfxr/riffwave.js"></script>
     <script src="node_modules/jsfxr/sfxr.js"></script>
     <script src="app.js?v=tutorials-1"></script>

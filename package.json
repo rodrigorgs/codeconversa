@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "codemirror": "^5.65.21",
+    "emoji-picker-element": "^1.29.1",
+    "emoji-picker-element-data": "^1.8.0",
     "jsfxr": "^1.4.1"
   }
 }

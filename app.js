@@ -87,6 +87,9 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     runButton: document.getElementById("run-button"),
     stepButton: document.getElementById("step-button"),
     stopButton: document.getElementById("stop-button"),
+    emojiButton: document.getElementById("emoji-button"),
+    emojiPopover: document.getElementById("emoji-popover"),
+    emojiPicker: document.getElementById("emoji-picker"),
     saveButton: document.getElementById("save-button"),
     sourceSaveStatus: document.getElementById("source-save-status"),
     loadExampleButton: document.getElementById("load-example-button"),
@@ -2142,6 +2145,59 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
   }
 
+  function setupEmojiPicker() {
+    elements.emojiButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleEmojiPicker(elements.emojiPopover.classList.contains("is-hidden"));
+    });
+
+    elements.emojiPopover.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    elements.emojiPicker.addEventListener("emoji-click", (event) => {
+      const emoji = event.detail && event.detail.unicode;
+      if (!emoji) {
+        return;
+      }
+      insertEmoji(emoji);
+      toggleEmojiPicker(false);
+    });
+
+    document.addEventListener("click", () => toggleEmojiPicker(false));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        toggleEmojiPicker(false);
+      }
+    });
+  }
+
+  function toggleEmojiPicker(show) {
+    elements.emojiPopover.classList.toggle("is-hidden", !show);
+    elements.emojiButton.setAttribute("aria-expanded", String(show));
+    if (show) {
+      elements.emojiPicker.focus();
+    } else if (document.activeElement === elements.emojiPicker) {
+      codeEditor.focus();
+    }
+  }
+
+  function insertEmoji(emoji) {
+    if (codeEditor) {
+      codeEditor.replaceSelection(emoji);
+      codeEditor.focus();
+      return;
+    }
+
+    const start = elements.source.selectionStart;
+    const end = elements.source.selectionEnd;
+    const value = elements.source.value;
+    elements.source.value = `${value.slice(0, start)}${emoji}${value.slice(end)}`;
+    elements.source.setSelectionRange(start + emoji.length, start + emoji.length);
+    elements.source.focus();
+    updateSaveStatus();
+  }
+
   function setupResizers() {
     const leftResizer = document.querySelector('[data-resizer="left"]');
     const rightResizer = document.querySelector('[data-resizer="right"]');
@@ -2211,6 +2267,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     },
   });
   codeEditor.on("change", updateSaveStatus);
+  setupEmojiPicker();
   elements.runButton.addEventListener("click", runFresh);
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton.addEventListener("click", () => interpreter.stop());
