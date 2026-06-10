@@ -43,9 +43,15 @@ Available built-ins:
 - `canvas(width, height)`
 - `clear(color)`
 - `drawLine(x1, y1, x2, y2, color)`
+- `drawCircle(x, y, radius, color)` and `fillCircle(x, y, radius, color)`
+- `drawRect(x, y, width, height, color)` and `fillRect(x, y, width, height, color)`
+- `floodFill(x, y, color)`
+- `drawText(x, y, text, options)`
 - `randomInt(min, max)`
 
 `canvas(width, height)` sends a canvas message to the chat and remembers it as the current drawing target. `clear(color)` paints the current canvas with a CSS color string, or makes it transparent when no color is provided. `drawLine(...)` draws on the most recent canvas. Large canvases are visually scaled to fit the chat while keeping their original coordinate system.
+
+`drawText` accepts an options object with `size`, `color`, and `font`, for example `drawText(20, 50, "Hi", { size: 28, color: "blue", font: "serif" })`.
 
 Supported string methods:
 

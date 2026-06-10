@@ -28,8 +28,13 @@ print("First color:", colors[0])
 print("There are", colors.length, "colors")
 canvas(240, 160)
 clear("#fff7ed")
+fillCircle(120, 80, 35, "#facc15")
+drawCircle(120, 80, 48, "#92400e")
+fillRect(22, 58, 52, 44, "#bbf7d0")
+drawRect(166, 58, 52, 44, "#166534")
 drawLine(20, 20, 220, 140, "#2563eb")
-drawLine(220, 20, 20, 140, "#dc2626")`;
+drawLine(220, 20, 20, 140, "#dc2626")
+drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   const sourceStorageKey = "intro-prog.source";
   const examples = [
@@ -187,7 +192,7 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
         continue;
       }
 
-      if ("+-*/%<>=!,()[].".includes(char)) {
+      if ("+-*/%<>=!,()[].{}:".includes(char)) {
         tokens.push({ type: "operator", value: char });
         index += 1;
         continue;
@@ -277,6 +282,25 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
         stream.expect("]");
       }
       expression = { type: "array", elements };
+    } else if (token.value === "{") {
+      const properties = [];
+      if (!stream.match("}")) {
+        do {
+          const key = stream.next();
+          if (key.type !== "identifier" && key.type !== "string") {
+            throw new Error("Object keys must be names or strings.");
+          }
+          if (stream.match(":")) {
+            properties.push({ key: key.value, value: parseBinary(stream, 0) });
+          } else if (key.type === "identifier") {
+            properties.push({ key: key.value, value: { type: "identifier", name: key.value } });
+          } else {
+            throw new Error("String object keys need a value after ':'.");
+          }
+        } while (stream.match(","));
+        stream.expect("}");
+      }
+      expression = { type: "object", properties };
     } else {
       throw new Error(`Unexpected "${token.value || "end of expression"}".`);
     }
@@ -488,6 +512,7 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
       let escaped = false;
       let parens = 0;
       let brackets = 0;
+      let braces = 0;
 
       while (!this.isAtEnd()) {
         const char = this.peek();
@@ -540,12 +565,27 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
           continue;
         }
 
-        if ((char === "\n" || char === ";") && parens === 0 && brackets === 0) {
+        if (char === "{") {
+          braces += 1;
+          text += char;
           this.index += 1;
-          break;
+          continue;
         }
 
-        if (char === "}" && parens === 0 && brackets === 0) {
+        if (char === "}") {
+          if (braces > 0) {
+            braces -= 1;
+            text += char;
+            this.index += 1;
+            continue;
+          }
+          if (parens === 0 && brackets === 0) {
+            break;
+          }
+        }
+
+        if ((char === "\n" || char === ";") && parens === 0 && brackets === 0 && braces === 0) {
+          this.index += 1;
           break;
         }
 
@@ -667,6 +707,7 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
     let escaped = false;
     let parens = 0;
     let brackets = 0;
+    let braces = 0;
 
     for (const char of header) {
       if (quote) {
@@ -711,7 +752,19 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
         continue;
       }
 
-      if (char === ";" && parens === 0 && brackets === 0) {
+      if (char === "{") {
+        braces += 1;
+        current += char;
+        continue;
+      }
+
+      if (char === "}") {
+        braces -= 1;
+        current += char;
+        continue;
+      }
+
+      if (char === ";" && parens === 0 && brackets === 0 && braces === 0) {
         parts.push(current);
         current = "";
         continue;
@@ -732,6 +785,7 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
     let escaped = false;
     let parens = 0;
     let brackets = 0;
+    let braces = 0;
 
     for (let index = 0; index < line.length; index += 1) {
       const char = line[index];
@@ -772,7 +826,17 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
         continue;
       }
 
-      if (char === "=" && parens === 0 && brackets === 0) {
+      if (char === "{") {
+        braces += 1;
+        continue;
+      }
+
+      if (char === "}") {
+        braces -= 1;
+        continue;
+      }
+
+      if (char === "=" && parens === 0 && brackets === 0 && braces === 0) {
         const previous = line[index - 1] || "";
         const next = line[index + 1] || "";
         if (previous !== "=" && previous !== "!" && previous !== "<" && previous !== ">" && next !== "=") {
@@ -903,6 +967,125 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
       context.moveTo(startX, startY);
       context.lineTo(endX, endY);
       context.stroke();
+      context.restore();
+      return undefined;
+    }
+
+    drawCircle(x, y, radius, color = "#111111") {
+      this.circle(x, y, radius, color, false);
+      return undefined;
+    }
+
+    fillCircle(x, y, radius, color = "#111111") {
+      this.circle(x, y, radius, color, true);
+      return undefined;
+    }
+
+    circle(x, y, radius, color, fill) {
+      const { context } = this.requireCanvas();
+      const centerX = normalizeDrawingNumber(x, "x");
+      const centerY = normalizeDrawingNumber(y, "y");
+      const circleRadius = normalizePositiveDrawingNumber(radius, "r");
+
+      context.save();
+      context.beginPath();
+      context.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+      if (fill) {
+        context.fillStyle = String(color);
+        context.fill();
+      } else {
+        context.strokeStyle = String(color);
+        context.lineWidth = 2;
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    drawRect(x, y, width, height, color = "#111111") {
+      this.rect(x, y, width, height, color, false);
+      return undefined;
+    }
+
+    fillRect(x, y, width, height, color = "#111111") {
+      this.rect(x, y, width, height, color, true);
+      return undefined;
+    }
+
+    rect(x, y, width, height, color, fill) {
+      const { context } = this.requireCanvas();
+      const rectX = normalizeDrawingNumber(x, "x");
+      const rectY = normalizeDrawingNumber(y, "y");
+      const rectWidth = normalizeDrawingNumber(width, "w");
+      const rectHeight = normalizeDrawingNumber(height, "h");
+
+      context.save();
+      if (fill) {
+        context.fillStyle = String(color);
+        context.fillRect(rectX, rectY, rectWidth, rectHeight);
+      } else {
+        context.strokeStyle = String(color);
+        context.lineWidth = 2;
+        context.strokeRect(rectX, rectY, rectWidth, rectHeight);
+      }
+      context.restore();
+    }
+
+    floodFill(x, y, color) {
+      const { canvas, context } = this.requireCanvas();
+      const startX = Math.floor(normalizeDrawingNumber(x, "x"));
+      const startY = Math.floor(normalizeDrawingNumber(y, "y"));
+      if (startX < 0 || startX >= canvas.width || startY < 0 || startY >= canvas.height) {
+        return undefined;
+      }
+
+      const image = context.getImageData(0, 0, canvas.width, canvas.height);
+      const data = image.data;
+      const target = getPixel(data, canvas.width, startX, startY);
+      const replacement = colorToRgba(context, color);
+      if (sameColor(target, replacement)) {
+        return undefined;
+      }
+
+      const stack = [[startX, startY]];
+      while (stack.length) {
+        const [currentX, currentY] = stack.pop();
+        if (currentX < 0 || currentX >= canvas.width || currentY < 0 || currentY >= canvas.height) {
+          continue;
+        }
+        const offset = (currentY * canvas.width + currentX) * 4;
+        if (
+          data[offset] !== target[0] ||
+          data[offset + 1] !== target[1] ||
+          data[offset + 2] !== target[2] ||
+          data[offset + 3] !== target[3]
+        ) {
+          continue;
+        }
+        data[offset] = replacement[0];
+        data[offset + 1] = replacement[1];
+        data[offset + 2] = replacement[2];
+        data[offset + 3] = replacement[3];
+        stack.push([currentX + 1, currentY], [currentX - 1, currentY], [currentX, currentY + 1], [currentX, currentY - 1]);
+      }
+
+      context.putImageData(image, 0, 0);
+      return undefined;
+    }
+
+    drawText(x, y, text, options = {}) {
+      const { context } = this.requireCanvas();
+      const textX = normalizeDrawingNumber(x, "x");
+      const textY = normalizeDrawingNumber(y, "y");
+      const style = options && typeof options === "object" && !Array.isArray(options) ? options : {};
+      const size = style.size === undefined ? 20 : normalizePositiveDrawingNumber(style.size, "size");
+      const font = style.font === undefined ? "sans-serif" : String(style.font);
+      const color = style.color === undefined ? "#111111" : String(style.color);
+
+      context.save();
+      context.fillStyle = color;
+      context.font = `${size}px ${font}`;
+      context.textBaseline = "alphabetic";
+      context.fillText(String(text), textX, textY);
       context.restore();
       return undefined;
     }
@@ -1296,6 +1479,9 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
       if (node.property === "length" && (Array.isArray(object) || typeof object === "string")) {
         return object.length;
       }
+      if (object && typeof object === "object" && !Array.isArray(object) && Object.prototype.hasOwnProperty.call(object, node.property)) {
+        return object[node.property];
+      }
       throw new Error(`Property ".${node.property}" is only available on supported values.`);
     }
 
@@ -1305,6 +1491,14 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
         values.push(await evaluate(element, env, runtime));
       }
       return values;
+    }
+
+    if (node.type === "object") {
+      const value = {};
+      for (const property of node.properties) {
+        value[property.key] = await evaluate(property.value, env, runtime);
+      }
+      return value;
     }
 
     throw new Error(`Cannot evaluate "${node.type}".`);
@@ -1346,6 +1540,34 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
       throw new Error(`${label} must be a number.`);
     }
     return number;
+  }
+
+  function normalizePositiveDrawingNumber(value, label) {
+    const number = normalizeDrawingNumber(value, label);
+    if (number <= 0) {
+      throw new Error(`${label} must be greater than 0.`);
+    }
+    return number;
+  }
+
+  function getPixel(data, width, x, y) {
+    const offset = (y * width + x) * 4;
+    return [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
+  }
+
+  function sameColor(first, second) {
+    return first[0] === second[0] && first[1] === second[1] && first[2] === second[2] && first[3] === second[3];
+  }
+
+  function colorToRgba(context, color) {
+    const sample = document.createElement("canvas");
+    sample.width = 1;
+    sample.height = 1;
+    const sampleContext = sample.getContext("2d");
+    sampleContext.fillStyle = String(color ?? "transparent");
+    sampleContext.fillRect(0, 0, 1, 1);
+    const rgba = Array.from(sampleContext.getImageData(0, 0, 1, 1).data);
+    return rgba;
   }
 
   const stringMethods = {
@@ -1407,6 +1629,12 @@ drawLine(220, 20, 20, 140, "#dc2626")`;
     if (name === "canvas") return runtime.canvas(args[0] ?? 400, args[1] ?? 400);
     if (name === "clear") return runtime.clearCanvas(args[0]);
     if (name === "drawLine") return runtime.drawLine(args[0], args[1], args[2], args[3], args[4]);
+    if (name === "drawCircle") return runtime.drawCircle(args[0], args[1], args[2], args[3]);
+    if (name === "fillCircle") return runtime.fillCircle(args[0], args[1], args[2], args[3]);
+    if (name === "drawRect") return runtime.drawRect(args[0], args[1], args[2], args[3], args[4]);
+    if (name === "fillRect") return runtime.fillRect(args[0], args[1], args[2], args[3], args[4]);
+    if (name === "floodFill") return runtime.floodFill(args[0], args[1], args[2]);
+    if (name === "drawText") return runtime.drawText(args[0], args[1], args[2], args[3]);
     if (name === "randomInt") {
       const min = Number(args[0]);
       const max = Number(args[1]);
