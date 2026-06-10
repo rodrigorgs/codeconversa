@@ -2,6 +2,8 @@
   const starterCode = `let name = read("What's your name?")
 react("👋")
 print("Hi", name)
+print("Your name in uppercase is", name.toUpperCase())
+print("Your name has", name.length, "letters")
 let age = readNumber("How old are you?")
 react("👍")
 if (age >= 13) {
@@ -1178,6 +1180,14 @@ print("There are", colors.length, "colors")`;
     }
 
     if (node.type === "call") {
+      if (node.callee.type === "member") {
+        const object = await evaluate(node.callee.object, env, runtime);
+        const args = [];
+        for (const arg of node.args) {
+          args.push(await evaluate(arg, env, runtime));
+        }
+        return callMethod(object, node.callee.property, args);
+      }
       if (node.callee.type !== "identifier") {
         throw new Error("Only beginner built-in functions can be called.");
       }
@@ -1192,12 +1202,12 @@ print("There are", colors.length, "colors")`;
     if (node.type === "index") {
       const object = await evaluate(node.object, env, runtime);
       const index = await evaluate(node.index, env, runtime);
-      return getArrayIndex(object, index);
+      return getIndex(object, index);
     }
 
     if (node.type === "member") {
       const object = await evaluate(node.object, env, runtime);
-      if (node.property === "length" && Array.isArray(object)) {
+      if (node.property === "length" && (Array.isArray(object) || typeof object === "string")) {
         return object.length;
       }
       throw new Error(`Property ".${node.property}" is only available on supported values.`);
@@ -1214,23 +1224,60 @@ print("There are", colors.length, "colors")`;
     throw new Error(`Cannot evaluate "${node.type}".`);
   }
 
-  function normalizeArrayIndex(object, index) {
-    if (!Array.isArray(object)) {
-      throw new Error("Only arrays can use square-bracket indexes.");
+  function normalizeIndex(object, index) {
+    if (!Array.isArray(object) && typeof object !== "string") {
+      throw new Error("Only arrays and strings can use square-bracket indexes.");
     }
     const numericIndex = Number(index);
     if (!Number.isInteger(numericIndex) || numericIndex < 0) {
-      throw new Error("Array indexes must be whole numbers starting at 0.");
+      throw new Error("Indexes must be whole numbers starting at 0.");
     }
     return numericIndex;
   }
 
-  function getArrayIndex(object, index) {
-    return object[normalizeArrayIndex(object, index)];
+  function getIndex(object, index) {
+    return object[normalizeIndex(object, index)];
   }
 
   function setArrayIndex(object, index, value) {
-    object[normalizeArrayIndex(object, index)] = value;
+    if (!Array.isArray(object)) {
+      throw new Error("Only arrays can be changed with square-bracket assignment.");
+    }
+    object[normalizeIndex(object, index)] = value;
+  }
+
+  const stringMethods = {
+    toUpperCase: (text) => text.toUpperCase(),
+    toLowerCase: (text) => text.toLowerCase(),
+    trim: (text) => text.trim(),
+    trimStart: (text) => text.trimStart(),
+    trimEnd: (text) => text.trimEnd(),
+    includes: (text, search, position) => text.includes(String(search), position),
+    startsWith: (text, search, position) => text.startsWith(String(search), position),
+    endsWith: (text, search, length) => text.endsWith(String(search), length),
+    indexOf: (text, search, position) => text.indexOf(String(search), position),
+    lastIndexOf: (text, search, position) => text.lastIndexOf(String(search), position),
+    slice: (text, start, end) => text.slice(start, end),
+    substring: (text, start, end) => text.substring(start, end),
+    replace: (text, search, replacement) => text.replace(String(search), String(replacement)),
+    replaceAll: (text, search, replacement) => text.replaceAll(String(search), String(replacement)),
+    repeat: (text, count) => text.repeat(count),
+    charAt: (text, index) => text.charAt(index),
+    at: (text, index) => text.at(index),
+    concat: (text, ...parts) => text.concat(...parts.map(String)),
+    padStart: (text, length, fill = " ") => text.padStart(length, String(fill)),
+    padEnd: (text, length, fill = " ") => text.padEnd(length, String(fill)),
+    split: (text, separator, limit) => text.split(separator === undefined ? undefined : String(separator), limit),
+  };
+
+  function callMethod(object, name, args) {
+    if (typeof object === "string" && Object.prototype.hasOwnProperty.call(stringMethods, name)) {
+      return stringMethods[name](object, ...args);
+    }
+    if (typeof object === "string") {
+      throw new Error(`String method ".${name}()" is not available.`);
+    }
+    throw new Error(`Method ".${name}()" is only available on supported values.`);
   }
 
   function applyOperator(operator, left, right) {
