@@ -1,4 +1,3 @@
-- saving code to localStorage so it doesn't get lost on reload
 - localStorage - save/load
 
 - Use say/read or say/listen or send/receive instead of print/read?

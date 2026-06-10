@@ -25,7 +25,11 @@ react("✅")
 print("Mood:", mood)
 let colors = ["red", "green", "blue"]
 print("First color:", colors[0])
-print("There are", colors.length, "colors")`;
+print("There are", colors.length, "colors")
+canvas(240, 160)
+clear("#fff7ed")
+drawLine(20, 20, 220, 140, "#2563eb")
+drawLine(220, 20, 20, 140, "#dc2626")`;
 
   const sourceStorageKey = "intro-prog.source";
   const examples = [
@@ -63,11 +67,12 @@ print("There are", colors.length, "colors")`;
     runButton: document.getElementById("run-button"),
     stepButton: document.getElementById("step-button"),
     stopButton: document.getElementById("stop-button"),
-    resetButton: document.getElementById("reset-button"),
     saveButton: document.getElementById("save-button"),
     sourceSaveStatus: document.getElementById("source-save-status"),
-    exampleSelect: document.getElementById("example-select"),
     loadExampleButton: document.getElementById("load-example-button"),
+    exampleModal: document.getElementById("example-modal"),
+    exampleList: document.getElementById("example-list"),
+    closeExampleModal: document.getElementById("close-example-modal"),
     status: document.getElementById("runner-status"),
     variables: document.getElementById("variables"),
     executionState: document.getElementById("execution-state"),
@@ -835,6 +840,7 @@ print("There are", colors.length, "colors")`;
       this.pendingRead = null;
       this.pendingDelay = null;
       this.lastUserBubble = null;
+      this.lastCanvas = null;
     }
 
     print(...values) {
@@ -842,10 +848,70 @@ print("There are", colors.length, "colors")`;
       return undefined;
     }
 
-    clear() {
+    clearChat() {
       elements.messages.innerHTML = "";
       this.lastUserBubble = null;
+      this.lastCanvas = null;
       return undefined;
+    }
+
+    canvas(width = 400, height = 400) {
+      const canvasWidth = normalizeCanvasDimension(width, "width");
+      const canvasHeight = normalizeCanvasDimension(height, "height");
+      const canvas = document.createElement("canvas");
+      canvas.className = "drawing-canvas";
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", `Drawing canvas, ${canvasWidth} by ${canvasHeight}`);
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble app canvas-bubble";
+      bubble.appendChild(canvas);
+      elements.messages.appendChild(bubble);
+      elements.messages.scrollTop = elements.messages.scrollHeight;
+
+      const context = canvas.getContext("2d");
+      this.lastCanvas = { canvas, context, bubble };
+      return undefined;
+    }
+
+    clearCanvas(color) {
+      const { canvas, context } = this.requireCanvas();
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (color !== undefined) {
+        context.save();
+        context.fillStyle = String(color);
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
+      }
+      return undefined;
+    }
+
+    drawLine(x1, y1, x2, y2, color = "#111111") {
+      const { context } = this.requireCanvas();
+      const startX = normalizeDrawingNumber(x1, "x1");
+      const startY = normalizeDrawingNumber(y1, "y1");
+      const endX = normalizeDrawingNumber(x2, "x2");
+      const endY = normalizeDrawingNumber(y2, "y2");
+
+      context.save();
+      context.beginPath();
+      context.strokeStyle = String(color);
+      context.lineWidth = 2;
+      context.lineCap = "round";
+      context.moveTo(startX, startY);
+      context.lineTo(endX, endY);
+      context.stroke();
+      context.restore();
+      return undefined;
+    }
+
+    requireCanvas() {
+      if (!this.lastCanvas || !this.lastCanvas.canvas.isConnected) {
+        throw new Error("Call canvas() before drawing.");
+      }
+      return this.lastCanvas;
     }
 
     react(value) {
@@ -1044,8 +1110,12 @@ print("There are", colors.length, "colors")`;
           addMessage("system", "Program finished.");
         }
       } catch (error) {
-        addMessage("error", error.message);
-        setStatus("Error");
+        if (this.cancelled && error.message === "Program stopped.") {
+          setStatus("Stopped");
+        } else {
+          addMessage("error", error.message);
+          setStatus("Error");
+        }
       } finally {
         this.running = false;
         updateInspector(this);
@@ -1067,8 +1137,12 @@ print("There are", colors.length, "colors")`;
           setStatus("Ready");
         }
       } catch (error) {
-        addMessage("error", error.message);
-        setStatus("Error");
+        if (this.cancelled && error.message === "Program stopped.") {
+          setStatus("Stopped");
+        } else {
+          addMessage("error", error.message);
+          setStatus("Error");
+        }
       } finally {
         this.running = false;
         updateInspector(this);
@@ -1258,6 +1332,22 @@ print("There are", colors.length, "colors")`;
     object[normalizeIndex(object, index)] = value;
   }
 
+  function normalizeCanvasDimension(value, label) {
+    const dimension = Number(value);
+    if (!Number.isFinite(dimension) || dimension <= 0) {
+      throw new Error(`canvas ${label} must be a positive number.`);
+    }
+    return Math.round(Math.min(dimension, 2000));
+  }
+
+  function normalizeDrawingNumber(value, label) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      throw new Error(`${label} must be a number.`);
+    }
+    return number;
+  }
+
   const stringMethods = {
     toUpperCase: (text) => text.toUpperCase(),
     toLowerCase: (text) => text.toLowerCase(),
@@ -1314,7 +1404,9 @@ print("There are", colors.length, "colors")`;
     if (name === "readChoice") return runtime.readChoice(args[0] ?? "", args[1], args.length > 0);
     if (name === "delay") return runtime.delay(args[0] ?? 1);
     if (name === "react") return runtime.react(args[0] ?? "");
-    if (name === "clear") return runtime.clear();
+    if (name === "canvas") return runtime.canvas(args[0] ?? 400, args[1] ?? 400);
+    if (name === "clear") return runtime.clearCanvas(args[0]);
+    if (name === "drawLine") return runtime.drawLine(args[0], args[1], args[2], args[3], args[4]);
     if (name === "randomInt") {
       const min = Number(args[0]);
       const max = Number(args[1]);
@@ -1354,18 +1446,24 @@ print("There are", colors.length, "colors")`;
     }
   }
 
-  function saveSource() {
+  function saveSource({ announce = true } = {}) {
     const source = getSourceCode();
     try {
       window.localStorage.setItem(sourceStorageKey, source);
       storageAvailable = true;
       lastSavedSource = source;
       updateSaveStatus();
-      addReplEntry("Source saved.");
+      if (announce) {
+        addReplEntry("Source saved.");
+      }
+      return true;
     } catch {
       storageAvailable = false;
       updateSaveStatus();
-      addReplEntry("Could not save source code in this browser.", true);
+      if (announce) {
+        addReplEntry("Could not save source code in this browser.", true);
+      }
+      return false;
     }
   }
 
@@ -1375,46 +1473,62 @@ print("There are", colors.length, "colors")`;
     }
     const source = getSourceCode();
     const isSaved = storageAvailable && lastSavedSource !== null && source === lastSavedSource;
-    elements.sourceSaveStatus.classList.toggle("is-saved", isSaved);
-    elements.sourceSaveStatus.classList.toggle("is-unsaved", !isSaved);
+    const isDirty = !isSaved;
+    elements.sourceSaveStatus.classList.toggle("is-unsaved", isDirty);
     if (!storageAvailable) {
-      elements.sourceSaveStatus.textContent = "Save off";
+      elements.sourceSaveStatus.textContent = "*";
       elements.sourceSaveStatus.title = "Local storage is not available.";
     } else if (isSaved) {
-      elements.sourceSaveStatus.textContent = "Saved";
+      elements.sourceSaveStatus.textContent = "";
       elements.sourceSaveStatus.title = "This code is saved in this browser.";
     } else {
-      elements.sourceSaveStatus.textContent = lastSavedSource === null ? "Not saved" : "Unsaved";
+      elements.sourceSaveStatus.textContent = "*";
       elements.sourceSaveStatus.title = "Press Save or Ctrl+S to save this code in this browser.";
     }
   }
 
   function setupExamples() {
-    elements.exampleSelect.innerHTML = "";
+    elements.exampleList.innerHTML = "";
     for (const example of examples) {
-      const option = document.createElement("option");
-      option.value = example.id;
-      option.textContent = example.name;
-      elements.exampleSelect.appendChild(option);
+      const button = document.createElement("button");
+      button.className = "example-option";
+      button.type = "button";
+      button.textContent = example.name;
+      button.addEventListener("click", () => loadExample(example));
+      elements.exampleList.appendChild(button);
     }
   }
 
-  function loadSelectedExample() {
-    const selected = examples.find((example) => example.id === elements.exampleSelect.value) || examples[0];
-    if (!selected) {
-      return;
+  function openExampleModal() {
+    if (typeof elements.exampleModal.showModal === "function") {
+      elements.exampleModal.showModal();
+    } else {
+      elements.exampleModal.setAttribute("open", "");
     }
+  }
+
+  function closeExampleModal() {
+    if (typeof elements.exampleModal.close === "function") {
+      elements.exampleModal.close();
+    } else {
+      elements.exampleModal.removeAttribute("open");
+    }
+  }
+
+  function loadExample(example) {
     const shouldReplace = window.confirm(
-      `Replace the current code with "${selected.name}"?\n\nUnsaved changes in the editor will be lost.`
+      `Replace the current code with "${example.name}"?\n\nUnsaved changes in the editor will be lost.`
     );
     if (!shouldReplace) {
       return;
     }
-    setSourceCode(selected.source);
+    setSourceCode(example.source);
+    closeExampleModal();
     codeEditor?.focus();
   }
 
   function runFresh() {
+    saveSource({ announce: false });
     runtime.cancel();
     elements.messages.innerHTML = "";
     runtime.lastUserBubble = null;
@@ -1694,22 +1808,13 @@ print("There are", colors.length, "colors")`;
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton.addEventListener("click", () => interpreter.stop());
   elements.saveButton.addEventListener("click", saveSource);
-  elements.loadExampleButton.addEventListener("click", loadSelectedExample);
+  elements.loadExampleButton.addEventListener("click", openExampleModal);
+  elements.closeExampleModal.addEventListener("click", closeExampleModal);
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
       saveSource();
     }
-  });
-  elements.resetButton.addEventListener("click", () => {
-    runtime.cancel();
-    elements.messages.innerHTML = "";
-    runtime.lastUserBubble = null;
-    interpreter.resetEnv();
-    interpreter.program = [];
-    disableMessageBox();
-    setStatus("Ready");
-    addMessage("system", "Workspace reset.");
   });
 
   elements.messageForm.addEventListener("submit", (event) => {

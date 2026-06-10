@@ -199,38 +199,23 @@ input:disabled {
   justify-content: flex-end;
 }
 
-.run-controls select {
-  min-width: 128px;
-  max-width: 170px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--text);
-  padding: 8px 9px;
-}
-
 .save-status {
-  min-width: 70px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 5px 9px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.54);
-  font-size: 12px;
+  width: 12px;
+  color: #a15c00;
+  font-size: 20px;
+  font-weight: 800;
   line-height: 1;
   text-align: center;
 }
 
-.save-status.is-saved {
-  color: #166534;
-  border-color: #86c59a;
-  background: #e8f7ed;
-}
-
-.save-status.is-unsaved {
-  color: #8a5200;
-  border-color: #e3ba70;
-  background: #fff4dc;
+.icon-action {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
 }
 
 #run-button {
@@ -241,6 +226,49 @@ input:disabled {
 
 #run-button:hover {
   background: var(--accent-dark);
+}
+
+.example-modal {
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: 0 24px 70px rgba(35, 27, 18, 0.28);
+}
+
+.example-modal::backdrop {
+  background: rgba(31, 24, 18, 0.38);
+}
+
+.example-modal-panel {
+  margin: 0;
+}
+
+.example-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.example-modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.example-list {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.example-option {
+  width: 100%;
+  text-align: left;
 }
 
 .CodeMirror {
@@ -389,6 +417,19 @@ input:disabled {
 
 .bubble.app {
   background: var(--received);
+}
+
+.canvas-bubble {
+  max-width: min(92%, 560px);
+  width: min(92%, 560px);
+  padding: 6px;
+}
+
+.drawing-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
 }
 
 .bubble.user {

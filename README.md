@@ -13,7 +13,7 @@ Then open `http://localhost:8000`.
 
 The code editor uses CodeMirror, installed locally through npm so the page can run without a CDN dependency.
 
-The Save button stores the current source code in this browser's `localStorage`. `Ctrl+S` and `Cmd+S` also save. When the page reloads, the editor restores the last saved code and shows whether the current editor contents are saved or unsaved.
+The Save button stores the current source code in this browser's `localStorage`. `Ctrl+S` and `Cmd+S` also save, and Run saves before starting the program. When the page reloads, the editor restores the last saved code. A `*` beside Save means the current editor contents are not saved. The Example button opens the example picker and asks for confirmation before replacing the editor contents.
 
 ## Current Language
 
@@ -29,6 +29,7 @@ The app intentionally runs a beginner subset through its own interpreter instead
 - `if (...) { ... } else { ... }`
 - `while (...) { ... }`
 - `for (let i = 0; i < 3; i++) { ... }`
+- canvas drawing with the most recently created canvas
 - calls to the built-in teaching functions
 
 Available built-ins:
@@ -39,8 +40,12 @@ Available built-ins:
 - `readChoice(question, options)`
 - `react(value)`
 - `delay(seconds)`
+- `canvas(width, height)`
+- `clear(color)`
+- `drawLine(x1, y1, x2, y2, color)`
 - `randomInt(min, max)`
-- `clear()`
+
+`canvas(width, height)` sends a canvas message to the chat and remembers it as the current drawing target. `clear(color)` paints the current canvas with a CSS color string, or makes it transparent when no color is provided. `drawLine(...)` draws on the most recent canvas. Large canvases are visually scaled to fit the chat while keeping their original coordinate system.
 
 Supported string methods:
 

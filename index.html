@@ -6,7 +6,7 @@
     <title>Intro Prog Chat Lab</title>
     <link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="node_modules/codemirror/theme/material-darker.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=canvas-2">
   </head>
   <body>
     <div class="app-shell">
@@ -27,16 +27,12 @@
           <div class="pane-header">
             <h2>Code</h2>
             <div class="run-controls">
-              <span class="save-status" id="source-save-status" aria-live="polite">Not saved</span>
+              <span class="save-status" id="source-save-status" aria-live="polite"></span>
               <button id="save-button" type="button" title="Save source code">Save</button>
-              <select id="example-select" aria-label="Example programs">
-                <option value="default">Default example</option>
-              </select>
-              <button id="load-example-button" type="button">Load Example</button>
-              <button id="run-button">Run</button>
-              <button id="step-button">Step</button>
-              <button id="stop-button">Stop</button>
-              <button id="reset-button">Reset</button>
+              <button id="load-example-button" type="button">Example</button>
+              <button class="icon-action" id="run-button" aria-label="Run" title="Run and save">▶</button>
+              <button class="icon-action" id="step-button" aria-label="Step" title="Step">⏭</button>
+              <button class="icon-action" id="stop-button" aria-label="Stop" title="Stop">■</button>
             </div>
           </div>
           <textarea id="source-editor" spellcheck="false" aria-label="Source code editor"></textarea>
@@ -93,20 +89,31 @@
               <li><code>readChoice(question, [options])</code></li>
               <li><code>items[0]</code> and <code>items.length</code></li>
               <li><code>text.length</code> and <code>text.toUpperCase()</code></li>
+              <li><code>canvas(w, h)</code></li>
+              <li><code>clear(color)</code></li>
+              <li><code>drawLine(x1, y1, x2, y2, color)</code></li>
               <li><code>react(value)</code></li>
               <li><code>delay(seconds)</code></li>
               <li><code>if (...) { ... } else { ... }</code></li>
               <li><code>while (...) { ... }</code></li>
               <li><code>for (let i = 0; i &lt; 3; i++) { ... }</code></li>
               <li><code>randomInt(min, max)</code></li>
-              <li><code>clear()</code></li>
             </ul>
           </div>
         </aside>
       </main>
     </div>
+    <dialog class="example-modal" id="example-modal" aria-labelledby="example-modal-title">
+      <form method="dialog" class="example-modal-panel">
+        <div class="example-modal-header">
+          <h2 id="example-modal-title">Examples</h2>
+          <button class="icon-action" id="close-example-modal" type="submit" aria-label="Close examples" title="Close">×</button>
+        </div>
+        <div class="example-list" id="example-list"></div>
+      </form>
+    </dialog>
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
-    <script src="app.js?v=save-1"></script>
+    <script src="app.js?v=canvas-2"></script>
   </body>
 </html>
