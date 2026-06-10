@@ -33,6 +33,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -192,9 +193,44 @@ input:disabled {
 
 .run-controls {
   display: flex;
+  align-items: center;
   gap: 7px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.run-controls select {
+  min-width: 128px;
+  max-width: 170px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 9px;
+}
+
+.save-status {
+  min-width: 70px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.54);
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.save-status.is-saved {
+  color: #166534;
+  border-color: #86c59a;
+  background: #e8f7ed;
+}
+
+.save-status.is-unsaved {
+  color: #8a5200;
+  border-color: #e3ba70;
+  background: #fff4dc;
 }
 
 #run-button {

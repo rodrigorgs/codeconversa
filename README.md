@@ -13,6 +13,8 @@ Then open `http://localhost:8000`.
 
 The code editor uses CodeMirror, installed locally through npm so the page can run without a CDN dependency.
 
+The Save button stores the current source code in this browser's `localStorage`. `Ctrl+S` and `Cmd+S` also save. When the page reloads, the editor restores the last saved code and shows whether the current editor contents are saved or unsaved.
+
 ## Current Language
 
 The app intentionally runs a beginner subset through its own interpreter instead of evaluating code directly. It supports:

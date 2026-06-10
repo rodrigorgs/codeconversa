@@ -27,6 +27,12 @@
           <div class="pane-header">
             <h2>Code</h2>
             <div class="run-controls">
+              <span class="save-status" id="source-save-status" aria-live="polite">Not saved</span>
+              <button id="save-button" type="button" title="Save source code">Save</button>
+              <select id="example-select" aria-label="Example programs">
+                <option value="default">Default example</option>
+              </select>
+              <button id="load-example-button" type="button">Load Example</button>
               <button id="run-button">Run</button>
               <button id="step-button">Step</button>
               <button id="stop-button">Stop</button>
@@ -101,6 +107,6 @@
     </div>
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
-    <script src="app.js?v=strings-1"></script>
+    <script src="app.js?v=save-1"></script>
   </body>
 </html>

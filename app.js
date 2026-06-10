@@ -27,6 +27,14 @@ let colors = ["red", "green", "blue"]
 print("First color:", colors[0])
 print("There are", colors.length, "colors")`;
 
+  const sourceStorageKey = "intro-prog.source";
+  const examples = [
+    {
+      id: "default",
+      name: "Default example",
+      source: starterCode,
+    },
+  ];
   const maxLoopIterations = 10000;
 
   const forbiddenWords = new Set([
@@ -56,6 +64,10 @@ print("There are", colors.length, "colors")`;
     stepButton: document.getElementById("step-button"),
     stopButton: document.getElementById("stop-button"),
     resetButton: document.getElementById("reset-button"),
+    saveButton: document.getElementById("save-button"),
+    sourceSaveStatus: document.getElementById("source-save-status"),
+    exampleSelect: document.getElementById("example-select"),
+    loadExampleButton: document.getElementById("load-example-button"),
     status: document.getElementById("runner-status"),
     variables: document.getElementById("variables"),
     executionState: document.getElementById("execution-state"),
@@ -1317,9 +1329,89 @@ print("There are", colors.length, "colors")`;
   const runtime = new ChatRuntime();
   const interpreter = new Interpreter(runtime, new Environment());
   let codeEditor = null;
+  let lastSavedSource = null;
+  let storageAvailable = true;
 
   function getSourceCode() {
     return codeEditor ? codeEditor.getValue() : elements.source.value;
+  }
+
+  function setSourceCode(source) {
+    if (codeEditor) {
+      codeEditor.setValue(source);
+    } else {
+      elements.source.value = source;
+    }
+    updateSaveStatus();
+  }
+
+  function loadSavedSource() {
+    try {
+      return window.localStorage.getItem(sourceStorageKey);
+    } catch {
+      storageAvailable = false;
+      return null;
+    }
+  }
+
+  function saveSource() {
+    const source = getSourceCode();
+    try {
+      window.localStorage.setItem(sourceStorageKey, source);
+      storageAvailable = true;
+      lastSavedSource = source;
+      updateSaveStatus();
+      addReplEntry("Source saved.");
+    } catch {
+      storageAvailable = false;
+      updateSaveStatus();
+      addReplEntry("Could not save source code in this browser.", true);
+    }
+  }
+
+  function updateSaveStatus() {
+    if (!elements.sourceSaveStatus) {
+      return;
+    }
+    const source = getSourceCode();
+    const isSaved = storageAvailable && lastSavedSource !== null && source === lastSavedSource;
+    elements.sourceSaveStatus.classList.toggle("is-saved", isSaved);
+    elements.sourceSaveStatus.classList.toggle("is-unsaved", !isSaved);
+    if (!storageAvailable) {
+      elements.sourceSaveStatus.textContent = "Save off";
+      elements.sourceSaveStatus.title = "Local storage is not available.";
+    } else if (isSaved) {
+      elements.sourceSaveStatus.textContent = "Saved";
+      elements.sourceSaveStatus.title = "This code is saved in this browser.";
+    } else {
+      elements.sourceSaveStatus.textContent = lastSavedSource === null ? "Not saved" : "Unsaved";
+      elements.sourceSaveStatus.title = "Press Save or Ctrl+S to save this code in this browser.";
+    }
+  }
+
+  function setupExamples() {
+    elements.exampleSelect.innerHTML = "";
+    for (const example of examples) {
+      const option = document.createElement("option");
+      option.value = example.id;
+      option.textContent = example.name;
+      elements.exampleSelect.appendChild(option);
+    }
+  }
+
+  function loadSelectedExample() {
+    const selected = examples.find((example) => example.id === elements.exampleSelect.value) || examples[0];
+    if (!selected) {
+      return;
+    }
+    const shouldReplace = window.confirm(
+      `Replace the current code with "${selected.name}"?\n\nUnsaved changes in the editor will be lost.`
+    );
+    if (!shouldReplace) {
+      return;
+    }
+    setSourceCode(selected.source);
+    codeEditor?.focus();
   }
 
   function runFresh() {
@@ -1579,7 +1671,9 @@ print("There are", colors.length, "colors")`;
     return Math.max(min, Math.min(max, value));
   }
 
-  elements.source.value = starterCode;
+  setupExamples();
+  lastSavedSource = loadSavedSource();
+  elements.source.value = lastSavedSource ?? starterCode;
   codeEditor = CodeMirror.fromTextArea(elements.source, {
     mode: "javascript",
     theme: "material-darker",
@@ -1591,11 +1685,22 @@ print("There are", colors.length, "colors")`;
     extraKeys: {
       "Ctrl-Enter": runFresh,
       "Cmd-Enter": runFresh,
+      "Ctrl-S": saveSource,
+      "Cmd-S": saveSource,
     },
   });
+  codeEditor.on("change", updateSaveStatus);
   elements.runButton.addEventListener("click", runFresh);
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton.addEventListener("click", () => interpreter.stop());
+  elements.saveButton.addEventListener("click", saveSource);
+  elements.loadExampleButton.addEventListener("click", loadSelectedExample);
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      saveSource();
+    }
+  });
   elements.resetButton.addEventListener("click", () => {
     runtime.cancel();
     elements.messages.innerHTML = "";
@@ -1636,6 +1741,7 @@ print("There are", colors.length, "colors")`;
   setupPaneToggles();
   setupResizers();
   disableMessageBox();
+  updateSaveStatus();
   updateInspector(interpreter);
   addMessage("system", "Ready to run.");
 })();
