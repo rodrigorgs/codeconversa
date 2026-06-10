@@ -1,6 +1,11 @@
-# Intro Prog Chat Lab
+# CodeConversa
 
 A browser-based teaching environment for small JavaScript-like programs that behave like conversational apps.
+
+## Tutorials
+
+- [Programação no CodeConversa](tutorial.html?doc=programacao), fonte em [Markdown](tutorials/programacao.md)
+- [Desenho com canvas](tutorial.html?doc=canvas), fonte em [Markdown](tutorials/canvas.md)
 
 ## Run
 
@@ -29,6 +34,7 @@ The app intentionally runs a beginner subset through its own interpreter instead
 - `if (...) { ... } else { ... }`
 - `while (...) { ... }`
 - `for (let i = 0; i < 3; i++) { ... }`
+- `for (let x of range(5, 7)) { ... }`
 - canvas drawing with the most recently created canvas
 - calls to the built-in teaching functions
 
@@ -51,6 +57,7 @@ Available built-ins:
 - `load(key, defaultValue)`
 - `delete(key)`
 - `deleteAll()`
+- `range(stop)`, `range(start, stop)`, `range(start, stop, step)`
 - `randomInt(min, max)`
 
 `canvas(width, height)` sends a canvas message to the chat and remembers it as the current drawing target. `clear(color)` paints the current canvas with a CSS color string, or makes it transparent when no color is provided. `drawLine(...)` draws on the most recent canvas. Large canvases are visually scaled to fit the chat while keeping their original coordinate system.
@@ -58,6 +65,8 @@ Available built-ins:
 `drawText` accepts an options object with `size`, `color`, and `font`, for example `drawText(20, 50, "Hi", { size: 28, color: "blue", font: "serif" })`.
 
 Student storage functions use a protected namespace in `localStorage`. `save`, `load`, `delete`, and `deleteAll` can only access keys under that namespace, so app-owned values such as the saved source code are not exposed to student programs.
+
+`range` returns an inclusive array of numbers. For example, `range(5, 7)` returns `[5, 6, 7]`, and `for (let x of range(5, 7)) { print(x) }` loops over those values.
 
 Supported string methods:
 

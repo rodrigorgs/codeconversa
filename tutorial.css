@@ -1,0 +1,99 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f2ea;
+  --panel: #fffdf8;
+  --text: #24201a;
+  --muted: #6d6256;
+  --line: #dfd4c4;
+  --accent: #0f766e;
+  --code: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.tutorial-shell {
+  width: min(920px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+.tutorial-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.tutorial-nav a {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: var(--panel);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.tutorial-nav a:hover {
+  text-decoration: underline;
+}
+
+.tutorial-content {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: clamp(18px, 4vw, 38px);
+  background: var(--panel);
+}
+
+.tutorial-content h1,
+.tutorial-content h2,
+.tutorial-content h3 {
+  line-height: 1.2;
+}
+
+.tutorial-content h1 {
+  margin-top: 0;
+  font-size: clamp(28px, 5vw, 42px);
+}
+
+.tutorial-content h2 {
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.tutorial-content p,
+.tutorial-content ul {
+  color: var(--muted);
+}
+
+.tutorial-content code {
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: #efe7dc;
+  color: var(--text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+
+.tutorial-content pre {
+  overflow: auto;
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--code);
+  color: #e5e7eb;
+}
+
+.tutorial-content pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}

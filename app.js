@@ -475,7 +475,21 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
 
     parseFor(lineNumber) {
-      const header = splitForHeader(this.readParenthesized("for"));
+      const headerSource = this.readParenthesized("for");
+      const forOf = headerSource.match(/^(?:let|const|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s+of\s+(.+)$/);
+      if (forOf) {
+        const [, name, iterableSource] = forOf;
+        const body = this.readBlock("for");
+        return {
+          type: "forOf",
+          name,
+          iterable: parseExpression(iterableSource),
+          body,
+          source: "for (... of ...)",
+          lineNumber,
+        };
+      }
+      const header = splitForHeader(headerSource);
       const [initSource, conditionSource, updateSource] = header;
       const init = initSource.trim() ? parseStatement(initSource.trim(), lineNumber) : null;
       const condition = conditionSource.trim() ? parseExpression(conditionSource.trim()) : { type: "literal", value: true };
@@ -880,6 +894,13 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
         return;
       }
       throw new Error(`Variable "${name}" has not been created yet.`);
+    }
+
+    has(name) {
+      if (this.values.has(name)) {
+        return true;
+      }
+      return this.parent ? this.parent.has(name) : false;
     }
 
     get(name) {
@@ -1418,6 +1439,29 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
         }
         return result;
       }
+      if (statement.type === "forOf") {
+        const iterable = await evaluate(statement.iterable, this.env, this.runtime);
+        if (!Array.isArray(iterable) && typeof iterable !== "string") {
+          throw new Error("for...of needs an array or string to loop over.");
+        }
+        let result = undefined;
+        let iterations = 0;
+        if (!this.env.has(statement.name)) {
+          this.env.declare(statement.name, undefined);
+        }
+        for (const value of iterable) {
+          if (this.cancelled) {
+            break;
+          }
+          iterations += 1;
+          if (iterations > maxLoopIterations) {
+            throw new Error(`Loop stopped after ${maxLoopIterations} iterations.`);
+          }
+          this.env.assign(statement.name, value);
+          result = await this.executeBlock(statement.body);
+        }
+        return result;
+      }
       return evaluate(statement.expression, this.env, this.runtime);
     }
   }
@@ -1633,6 +1677,38 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
   }
 
+  function createRange(args) {
+    if (args.length < 1 || args.length > 3) {
+      throw new Error("range needs one, two, or three numbers.");
+    }
+    const start = args.length === 1 ? 0 : Number(args[0]);
+    const stop = args.length === 1 ? Number(args[0]) : Number(args[1]);
+    const step = args.length === 3 ? Number(args[2]) : start <= stop ? 1 : -1;
+    if (!Number.isFinite(start) || !Number.isFinite(stop) || !Number.isFinite(step)) {
+      throw new Error("range needs numbers.");
+    }
+    if (step === 0) {
+      throw new Error("range step cannot be 0.");
+    }
+    const result = [];
+    if (step > 0) {
+      for (let value = start; value <= stop; value += step) {
+        result.push(value);
+        if (result.length > maxLoopIterations) {
+          throw new Error(`range stopped after ${maxLoopIterations} values.`);
+        }
+      }
+    } else {
+      for (let value = start; value >= stop; value += step) {
+        result.push(value);
+        if (result.length > maxLoopIterations) {
+          throw new Error(`range stopped after ${maxLoopIterations} values.`);
+        }
+      }
+    }
+    return result;
+  }
+
   const stringMethods = {
     toUpperCase: (text) => text.toUpperCase(),
     toLowerCase: (text) => text.toLowerCase(),
@@ -1702,6 +1778,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     if (name === "load") return loadValue(args[0], args[1]);
     if (name === "delete") return deleteValue(args[0]);
     if (name === "deleteAll") return deleteAllValues();
+    if (name === "range") return createRange(args);
     if (name === "randomInt") {
       const min = Number(args[0]);
       const max = Number(args[1]);
@@ -1860,12 +1937,16 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
     addReplEntry(`> ${trimmed}`);
     try {
-      const statement = parseStatement(trimmed, 1);
-      const result = await interpreter.execute(statement);
-      if (statement.type === "expression" && result !== undefined) {
+      const statements = /^(if|while|for)\b/.test(trimmed) ? parseProgram(trimmed) : [parseStatement(trimmed, 1)];
+      let result = undefined;
+      for (const statement of statements) {
+        result = await interpreter.execute(statement);
+        updateInspector(interpreter, statement);
+      }
+      const lastStatement = statements[statements.length - 1];
+      if (lastStatement.type === "expression" && result !== undefined) {
         addReplEntry(formatOutput(result));
       }
-      updateInspector(interpreter, statement);
     } catch (error) {
       addReplEntry(error.message, true);
     }

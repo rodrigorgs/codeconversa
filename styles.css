@@ -670,7 +670,8 @@ input:disabled {
 
 .variable-row dd,
 .state-list,
-.help-list {
+.help-list,
+.tutorial-list {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -692,6 +693,22 @@ input:disabled {
   margin: 0;
   padding-left: 18px;
   line-height: 1.75;
+}
+
+.tutorial-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.tutorial-list a {
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+
+.tutorial-list a:hover {
+  text-decoration: underline;
 }
 
 code {
