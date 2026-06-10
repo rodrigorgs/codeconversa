@@ -47,6 +47,19 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     },
   ];
   const maxLoopIterations = 10000;
+  const soundPresets = [
+    "pickupCoin",
+    "laserShoot",
+    "explosion",
+    "powerUp",
+    "hitHurt",
+    "jump",
+    "blipSelect",
+    "synth",
+    "tone",
+    "click",
+    "random",
+  ];
 
   const forbiddenWords = new Set([
     "async",
@@ -1113,6 +1126,23 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       return undefined;
     }
 
+    playSound(preset) {
+      const presetName = String(preset ?? "");
+      if (!soundPresets.includes(presetName)) {
+        throw new Error(`play(preset) needs one of: ${soundPresets.join(", ")}.`);
+      }
+      if (!window.jsfxr || !window.jsfxr.sfxr) {
+        throw new Error("Sound is not available because jsfxr did not load.");
+      }
+
+      const sound = window.jsfxr.sfxr.generate(presetName);
+      const playback = window.jsfxr.sfxr.play(sound);
+      if (playback && typeof playback.catch === "function") {
+        playback.catch(() => addMessage("error", "The browser blocked sound playback. Click Run again to allow audio."));
+      }
+      return undefined;
+    }
+
     requireCanvas() {
       if (!this.lastCanvas || !this.lastCanvas.canvas.isConnected) {
         throw new Error("Call canvas() before drawing.");
@@ -1774,6 +1804,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     if (name === "fillRect") return runtime.fillRect(args[0], args[1], args[2], args[3], args[4]);
     if (name === "floodFill") return runtime.floodFill(args[0], args[1], args[2]);
     if (name === "drawText") return runtime.drawText(args[0], args[1], args[2], args[3]);
+    if (name === "play") return runtime.playSound(args[0]);
     if (name === "save") return saveValue(args[0], args[1]);
     if (name === "load") return loadValue(args[0], args[1]);
     if (name === "delete") return deleteValue(args[0]);

@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "codemirror": "^5.65.21"
+    "codemirror": "^5.65.21",
+    "jsfxr": "^1.4.1"
   }
 }

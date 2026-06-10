@@ -1,13 +1,17 @@
-Rename the title from "Intro Prog Chat Lab" to "CodeConversa"
-Create a programming tutorial for this programming environment, in Brazilian Portuguese, aimed at adolescents and older children. Use this sequence: print, delay, react, read/readNumber, variables, arithmetic, if/else, while, for (let x of range), arrays. Write a separate tutorial for canvas operations. Use Markdown to write the tutorials, so as to keep them easy to modify. Link the tutorials from the main interface.
-
 - Use say/read or say/listen or send/receive instead of print/read?
+- sound (bxfr?)
+- emoji picker
+- light theme for code editor
+- highlight variable with an animation when the variable is created
+- highlighted line being run in the code editor
+- buttons to insert structures such as while (true) { ... delay(1) }, if, if/else, if/elseif/else
 - error feedback while writing (e.g., unmatched parens)
 - global variables (doesn't need to use let)
 - repl: up/down arrow to recover command history
 - profile(img) to change profile picture (img can be a URL or an emoji)
 - title(str) to change conversation title
 - language features
+  - break/continue
   - functions
   - objects
 - i18n
