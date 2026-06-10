@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "dev": "python3 -m http.server 8787 --bind 127.0.0.1"
+  },
   "dependencies": {
     "codemirror": "^5.65.21",
     "emoji-picker-element": "^1.29.1",

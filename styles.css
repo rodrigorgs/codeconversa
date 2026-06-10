@@ -345,6 +345,10 @@ input:disabled {
   outline-offset: -2px;
 }
 
+.CodeMirror .executing-line {
+  background: rgba(125, 211, 252, 0.2);
+}
+
 .CodeMirror.cm-s-default {
   background: #fffdfa;
   color: #1f2937;
@@ -365,6 +369,10 @@ input:disabled {
 
 .CodeMirror.cm-s-default .CodeMirror-selected {
   background: #cdeee8;
+}
+
+.CodeMirror.cm-s-default .executing-line {
+  background: #fff2a8;
 }
 
 .emoji-popover {
@@ -752,6 +760,30 @@ input:disabled {
   border: 1px solid var(--line);
   border-radius: 7px;
   background: #fbf8f3;
+}
+
+.variable-row.is-new {
+  animation: variable-created 900ms ease-out;
+}
+
+@keyframes variable-created {
+  0% {
+    border-color: #facc15;
+    background: #fef3c7;
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.55);
+    transform: translateY(-1px);
+  }
+
+  45% {
+    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.18);
+  }
+
+  100% {
+    border-color: var(--line);
+    background: #fbf8f3;
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);
+    transform: translateY(0);
+  }
 }
 
 .variable-row dt,

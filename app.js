@@ -48,6 +48,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     },
   ];
   const maxLoopIterations = 10000;
+  const variableCreatedAnimationMs = 900;
   const soundPresets = [
     "pickupCoin",
     "laserShoot",
@@ -445,12 +446,13 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
           }
           throw new Error("Unexpected closing brace.");
         }
-        statements.push(this.parseNextStatement(statements.length + 1));
+        statements.push(this.parseNextStatement());
       }
       return statements;
     }
 
-    parseNextStatement(lineNumber) {
+    parseNextStatement() {
+      const lineNumber = this.currentLineNumber();
       if (this.matchWord("if")) {
         return this.parseIf(lineNumber);
       }
@@ -470,8 +472,9 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       let alternate = [];
       if (this.matchWord("else")) {
         this.skipWhitespaceAndComments();
+        const alternateLineNumber = this.currentLineNumber();
         if (this.matchWord("if")) {
-          alternate = [this.parseIf(lineNumber)];
+          alternate = [this.parseIf(alternateLineNumber)];
         } else {
           alternate = this.readBlock("else");
         }
@@ -731,6 +734,16 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
     isAtEnd() {
       return this.index >= this.source.length;
+    }
+
+    currentLineNumber() {
+      let lineNumber = 1;
+      for (let index = 0; index < this.index; index += 1) {
+        if (this.source[index] === "\n") {
+          lineNumber += 1;
+        }
+      }
+      return lineNumber;
     }
   }
 
@@ -1308,6 +1321,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       this.running = false;
       this.cancelled = false;
       this.lastResult = undefined;
+      this.highlightExecution = true;
     }
 
     load(source) {
@@ -1331,6 +1345,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       this.cancelled = true;
       this.running = false;
       this.runtime.cancel();
+      clearExecutingLine();
       setStatus("Stopped");
       updateInspector(this);
     }
@@ -1359,6 +1374,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
         }
       } finally {
         this.running = false;
+        clearExecutingLine();
         updateInspector(this);
       }
     }
@@ -1375,6 +1391,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
           await this.stepOnce();
           setStatus("Ready");
         } else {
+          clearExecutingLine();
           setStatus("Ready");
         }
       } catch (error) {
@@ -1414,6 +1431,9 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
 
     async execute(statement) {
+      if (this.highlightExecution) {
+        highlightExecutingLine(statement);
+      }
       if (statement.type === "declaration") {
         const value = await evaluate(statement.expression, this.env, this.runtime);
         this.env.declare(statement.name, value);
@@ -1829,7 +1849,10 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   const runtime = new ChatRuntime();
   const interpreter = new Interpreter(runtime, new Environment());
   let codeEditor = null;
+  let executingLine = null;
   let lastSavedSource = null;
+  let variableCreatedAt = new Map();
+  let visibleVariableNames = new Set();
   let storageAvailable = true;
 
   function getSourceCode() {
@@ -1837,6 +1860,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   }
 
   function setSourceCode(source) {
+    clearExecutingLine();
     if (codeEditor) {
       codeEditor.setValue(source);
     } else {
@@ -1896,6 +1920,28 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     codeEditor.setOption("theme", theme);
     elements.editorTheme.value = theme;
     saveEditorTheme(theme);
+  }
+
+  function highlightExecutingLine(statement) {
+    if (!codeEditor || !statement || !Number.isInteger(statement.lineNumber)) {
+      return;
+    }
+    const lineIndex = statement.lineNumber - 1;
+    if (lineIndex < 0 || lineIndex >= codeEditor.lineCount()) {
+      return;
+    }
+    clearExecutingLine();
+    executingLine = codeEditor.addLineClass(lineIndex, "background", "executing-line");
+    codeEditor.scrollIntoView({ line: lineIndex, ch: 0 }, 80);
+  }
+
+  function clearExecutingLine() {
+    if (!codeEditor || executingLine === null) {
+      executingLine = null;
+      return;
+    }
+    codeEditor.removeLineClass(executingLine, "background", "executing-line");
+    executingLine = null;
   }
 
   function updateSaveStatus() {
@@ -1959,6 +2005,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   }
 
   function runFresh() {
+    clearExecutingLine();
     saveSource({ announce: false });
     runtime.cancel();
     elements.messages.innerHTML = "";
@@ -1969,6 +2016,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       addMessage("system", "Program started.");
       interpreter.runAll();
     } catch (error) {
+      clearExecutingLine();
       addMessage("error", error.message);
       setStatus("Error");
     }
@@ -1977,6 +2025,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   function stepFreshIfNeeded() {
     try {
       if (!interpreter.program.length || interpreter.position >= interpreter.program.length) {
+        clearExecutingLine();
         elements.messages.innerHTML = "";
         interpreter.resetEnv();
         interpreter.load(getSourceCode());
@@ -1984,6 +2033,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       }
       interpreter.stepFromButton();
     } catch (error) {
+      clearExecutingLine();
       addMessage("error", error.message);
       setStatus("Error");
     }
@@ -1995,6 +2045,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       return;
     }
     addReplEntry(`> ${trimmed}`);
+    const previousHighlightExecution = interpreter.highlightExecution;
+    interpreter.highlightExecution = false;
     try {
       const statements = /^(if|while|for)\b/.test(trimmed) ? parseProgram(trimmed) : [parseStatement(trimmed, 1)];
       let result = undefined;
@@ -2008,6 +2060,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       }
     } catch (error) {
       addReplEntry(error.message, true);
+    } finally {
+      interpreter.highlightExecution = previousHighlightExecution;
     }
   }
 
@@ -2102,6 +2156,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   function updateInspector(activeInterpreter, statement = null) {
     const snapshot = activeInterpreter.env.snapshot();
+    const now = performance.now();
+    const nextVariableNames = new Set(Object.keys(snapshot));
     elements.variables.innerHTML = "";
 
     const names = Object.keys(snapshot);
@@ -2115,6 +2171,13 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     for (const name of names) {
       const row = document.createElement("div");
       row.className = "variable-row";
+      if (!visibleVariableNames.has(name)) {
+        variableCreatedAt.set(name, now);
+      }
+      const createdAt = variableCreatedAt.get(name);
+      if (createdAt !== undefined && now - createdAt < variableCreatedAnimationMs) {
+        row.classList.add("is-new");
+      }
       const key = document.createElement("dt");
       const value = document.createElement("dd");
       key.textContent = name;
@@ -2122,6 +2185,12 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       row.append(key, value);
       elements.variables.appendChild(row);
     }
+    for (const [name, createdAt] of variableCreatedAt.entries()) {
+      if (!nextVariableNames.has(name) || now - createdAt >= variableCreatedAnimationMs) {
+        variableCreatedAt.delete(name);
+      }
+    }
+    visibleVariableNames = nextVariableNames;
 
     const status = elements.status.textContent || "Ready";
     updateExecutionState(status, activeInterpreter, statement);
@@ -2293,7 +2362,12 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       "Cmd-S": saveSource,
     },
   });
-  codeEditor.on("change", updateSaveStatus);
+  codeEditor.on("change", () => {
+    updateSaveStatus();
+    if (!interpreter.running) {
+      clearExecutingLine();
+    }
+  });
   setupEmojiPicker();
   elements.editorTheme.addEventListener("change", () => applyEditorTheme(elements.editorTheme.value));
   elements.runButton.addEventListener("click", runFresh);

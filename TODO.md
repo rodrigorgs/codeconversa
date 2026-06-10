@@ -1,6 +1,4 @@
 - Use say/read or say/listen or send/receive instead of print/read?
-- highlight variable with an animation when the variable is created
-- highlight the line being run in the code editor
 - buttons to insert structures such as while (true) { ... delay(1) }, if, if/else, if/elseif/else
 - error feedback while writing (e.g., unmatched parens)
 - global variables (doesn't need to use let)
@@ -12,6 +10,7 @@
   - functions
   - objects
 - i18n
+- make mobile-friendly
 - sprites and games
   - let spr = addSprite(filename)
     - spr.x, spr.y, spr.image
