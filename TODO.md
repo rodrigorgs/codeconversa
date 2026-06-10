@@ -1,4 +1,7 @@
-- global variables
+- Use say/read or say/listen or send/receive instead of print/read?
+- error feedback while writing (e.g., unmatched parens)
+- saving code to localStorage so it doesn't get lost on reload
+- global variables (doesn't need to use let)
 - repl: up/down arrow to recover command history
 - profile(img) to change profile picture (img can be a URL or an emoji)
 - title(str) to change conversation title
@@ -6,11 +9,14 @@
   - arrays
   - functions
   - objects
-- localStorage
+- localStorage - save/load
 - i18n
 - canvas - paint(w, h)
   - line(x1, y1, x2, y2, color), circle(x, y, r, color, filled?), rectangle(x, y, w, h, color, filled?), drawImage(filename), drawText(x, y, text, size, font), clear(color)
   - let spr = addSprite(filename)
     - spr.x, spr.y, spr.image
   - delay(x) will wait for repaint, even if x = 0
+  - image editor (a la TIC-80)
+  - functions to read key state
+  - concurrent model (one script per actor/sprite?), similar to Scratch
 - sound (bxfr?)

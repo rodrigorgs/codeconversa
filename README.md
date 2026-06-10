@@ -21,6 +21,7 @@ The app intentionally runs a beginner subset through its own interpreter instead
 - assignments
 - strings, numbers, booleans, and `null`
 - array literals with square brackets, such as `["Yes", "No"]`
+- array indexes, array assignment, and array length, such as `items[0]`, `items[1] = "Hi"`, and `items.length`
 - arithmetic and comparison expressions
 - `if (...) { ... } else { ... }`
 - `while (...) { ... }`

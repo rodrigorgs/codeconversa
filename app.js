@@ -20,7 +20,10 @@ while (countdown > 0) {
 }
 let mood = readChoice("How are you feeling?", ["Great", "Okay", "Tired"])
 react("✅")
-print("Mood:", mood)`;
+print("Mood:", mood)
+let colors = ["red", "green", "blue"]
+print("First color:", colors[0])
+print("There are", colors.length, "colors")`;
 
   const maxLoopIterations = 10000;
 
@@ -165,7 +168,7 @@ print("Mood:", mood)`;
         continue;
       }
 
-      if ("+-*/%<>=!,()[]".includes(char)) {
+      if ("+-*/%<>=!,()[].".includes(char)) {
         tokens.push({ type: "operator", value: char });
         index += 1;
         continue;
@@ -231,19 +234,39 @@ print("Mood:", mood)`;
 
   function parsePrimary(stream) {
     const token = stream.next();
+    let expression = null;
 
     if (token.type === "number" || token.type === "string") {
-      return { type: "literal", value: token.value };
+      expression = { type: "literal", value: token.value };
+    } else if (token.type === "identifier") {
+      if (token.value === "true" || token.value === "false") {
+        expression = { type: "literal", value: token.value === "true" };
+      } else if (token.value === "null") {
+        expression = { type: "literal", value: null };
+      } else {
+        expression = { type: "identifier", name: token.value };
+      }
+    } else if (token.value === "(") {
+      expression = parseBinary(stream, 0);
+      stream.expect(")");
+    } else if (token.value === "[") {
+      const elements = [];
+      if (!stream.match("]")) {
+        do {
+          elements.push(parseBinary(stream, 0));
+        } while (stream.match(","));
+        stream.expect("]");
+      }
+      expression = { type: "array", elements };
+    } else {
+      throw new Error(`Unexpected "${token.value || "end of expression"}".`);
     }
 
-    if (token.type === "identifier") {
-      if (token.value === "true" || token.value === "false") {
-        return { type: "literal", value: token.value === "true" };
-      }
-      if (token.value === "null") {
-        return { type: "literal", value: null };
-      }
-      let expression = { type: "identifier", name: token.value };
+    return parsePostfix(expression, stream);
+  }
+
+  function parsePostfix(expression, stream) {
+    while (true) {
       while (stream.match("(")) {
         const args = [];
         if (!stream.match(")")) {
@@ -254,27 +277,27 @@ print("Mood:", mood)`;
         }
         expression = { type: "call", callee: expression, args };
       }
-      return expression;
-    }
 
-    if (token.value === "(") {
-      const expression = parseBinary(stream, 0);
-      stream.expect(")");
-      return expression;
-    }
-
-    if (token.value === "[") {
-      const elements = [];
-      if (!stream.match("]")) {
-        do {
-          elements.push(parseBinary(stream, 0));
-        } while (stream.match(","));
+      if (stream.match("[")) {
+        const index = parseBinary(stream, 0);
         stream.expect("]");
+        expression = { type: "index", object: expression, index };
+        continue;
       }
-      return { type: "array", elements };
+
+      if (stream.match(".")) {
+        const property = stream.next();
+        if (property.type !== "identifier") {
+          throw new Error("Expected a property name after '.'.");
+        }
+        expression = { type: "member", object: expression, property: property.value };
+        continue;
+      }
+
+      break;
     }
 
-    throw new Error(`Unexpected "${token.value || "end of expression"}".`);
+    return expression;
   }
 
   function parseStatement(line, lineNumber = 1) {
@@ -291,6 +314,35 @@ print("Mood:", mood)`;
     if (increment) {
       const [, name, operator] = increment;
       return { type: "increment", name, operator, source: line, lineNumber };
+    }
+
+    const assignmentIndex = findTopLevelAssignment(line);
+    if (assignmentIndex > -1) {
+      const targetSource = line.slice(0, assignmentIndex).trim();
+      const expressionSource = line.slice(assignmentIndex + 1).trim();
+      if (!targetSource || !expressionSource) {
+        throw new Error("Assignment needs something on both sides of '='.");
+      }
+      const target = parseExpression(targetSource);
+      if (target.type === "identifier") {
+        return {
+          type: "assignment",
+          name: target.name,
+          expression: parseExpression(expressionSource),
+          source: line,
+          lineNumber,
+        };
+      }
+      if (target.type === "index") {
+        return {
+          type: "indexAssignment",
+          target,
+          expression: parseExpression(expressionSource),
+          source: line,
+          lineNumber,
+        };
+      }
+      throw new Error("Only variables and array positions can be assigned.");
     }
 
     const assignment = line.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(.+)$/);
@@ -416,6 +468,7 @@ print("Mood:", mood)`;
       let quote = null;
       let escaped = false;
       let parens = 0;
+      let brackets = 0;
 
       while (!this.isAtEnd()) {
         const char = this.peek();
@@ -454,12 +507,26 @@ print("Mood:", mood)`;
           continue;
         }
 
-        if ((char === "\n" || char === ";") && parens === 0) {
+        if (char === "[") {
+          brackets += 1;
+          text += char;
+          this.index += 1;
+          continue;
+        }
+
+        if (char === "]") {
+          brackets -= 1;
+          text += char;
+          this.index += 1;
+          continue;
+        }
+
+        if ((char === "\n" || char === ";") && parens === 0 && brackets === 0) {
           this.index += 1;
           break;
         }
 
-        if (char === "}" && parens === 0) {
+        if (char === "}" && parens === 0 && brackets === 0) {
           break;
         }
 
@@ -580,6 +647,7 @@ print("Mood:", mood)`;
     let quote = null;
     let escaped = false;
     let parens = 0;
+    let brackets = 0;
 
     for (const char of header) {
       if (quote) {
@@ -612,7 +680,19 @@ print("Mood:", mood)`;
         continue;
       }
 
-      if (char === ";" && parens === 0) {
+      if (char === "[") {
+        brackets += 1;
+        current += char;
+        continue;
+      }
+
+      if (char === "]") {
+        brackets -= 1;
+        current += char;
+        continue;
+      }
+
+      if (char === ";" && parens === 0 && brackets === 0) {
         parts.push(current);
         current = "";
         continue;
@@ -626,6 +706,63 @@ print("Mood:", mood)`;
       throw new Error("for needs three parts: start; condition; update.");
     }
     return parts;
+  }
+
+  function findTopLevelAssignment(line) {
+    let quote = null;
+    let escaped = false;
+    let parens = 0;
+    let brackets = 0;
+
+    for (let index = 0; index < line.length; index += 1) {
+      const char = line[index];
+
+      if (quote) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === quote) {
+          quote = null;
+        }
+        continue;
+      }
+
+      if (char === '"' || char === "'") {
+        quote = char;
+        continue;
+      }
+
+      if (char === "(") {
+        parens += 1;
+        continue;
+      }
+
+      if (char === ")") {
+        parens -= 1;
+        continue;
+      }
+
+      if (char === "[") {
+        brackets += 1;
+        continue;
+      }
+
+      if (char === "]") {
+        brackets -= 1;
+        continue;
+      }
+
+      if (char === "=" && parens === 0 && brackets === 0) {
+        const previous = line[index - 1] || "";
+        const next = line[index + 1] || "";
+        if (previous !== "=" && previous !== "!" && previous !== "<" && previous !== ">" && next !== "=") {
+          return index;
+        }
+      }
+    }
+
+    return -1;
   }
 
   function parseProgram(source) {
@@ -958,6 +1095,13 @@ print("Mood:", mood)`;
         this.env.assign(statement.name, value);
         return value;
       }
+      if (statement.type === "indexAssignment") {
+        const object = await evaluate(statement.target.object, this.env, this.runtime);
+        const index = await evaluate(statement.target.index, this.env, this.runtime);
+        const value = await evaluate(statement.expression, this.env, this.runtime);
+        setArrayIndex(object, index, value);
+        return value;
+      }
       if (statement.type === "increment") {
         const current = this.env.get(statement.name);
         if (typeof current !== "number") {
@@ -1045,6 +1189,20 @@ print("Mood:", mood)`;
       return callBuiltin(name, args, runtime);
     }
 
+    if (node.type === "index") {
+      const object = await evaluate(node.object, env, runtime);
+      const index = await evaluate(node.index, env, runtime);
+      return getArrayIndex(object, index);
+    }
+
+    if (node.type === "member") {
+      const object = await evaluate(node.object, env, runtime);
+      if (node.property === "length" && Array.isArray(object)) {
+        return object.length;
+      }
+      throw new Error(`Property ".${node.property}" is only available on supported values.`);
+    }
+
     if (node.type === "array") {
       const values = [];
       for (const element of node.elements) {
@@ -1054,6 +1212,25 @@ print("Mood:", mood)`;
     }
 
     throw new Error(`Cannot evaluate "${node.type}".`);
+  }
+
+  function normalizeArrayIndex(object, index) {
+    if (!Array.isArray(object)) {
+      throw new Error("Only arrays can use square-bracket indexes.");
+    }
+    const numericIndex = Number(index);
+    if (!Number.isInteger(numericIndex) || numericIndex < 0) {
+      throw new Error("Array indexes must be whole numbers starting at 0.");
+    }
+    return numericIndex;
+  }
+
+  function getArrayIndex(object, index) {
+    return object[normalizeArrayIndex(object, index)];
+  }
+
+  function setArrayIndex(object, index, value) {
+    object[normalizeArrayIndex(object, index)] = value;
   }
 
   function applyOperator(operator, left, right) {
