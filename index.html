@@ -6,7 +6,7 @@
     <title>CodeConversa</title>
     <link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="node_modules/codemirror/theme/material-darker.css">
-    <link rel="stylesheet" href="styles.css?v=mobile-editor-1">
+    <link rel="stylesheet" href="styles.css?v=ui-actions-3">
   </head>
   <body>
     <div class="app-shell">
@@ -17,13 +17,14 @@
             <div class="run-controls">
               <span class="save-status" id="source-save-status" aria-live="polite"></span>
               <button class="icon-action" id="run-button" aria-label="Run" title="Run and save">▶</button>
+              <button class="icon-action" id="emoji-button" type="button" aria-label="Insert emoji" title="Insert emoji" aria-expanded="false">🙂</button>
               <details class="editor-menu">
                 <summary class="icon-action editor-menu-button" aria-label="Menu" title="Menu">☰</summary>
                 <div class="editor-menu-panel">
                   <button id="save-button" type="button" title="Save source code">Save</button>
                   <button id="load-example-button" type="button">Example</button>
+                  <button class="danger-action" id="clear-code-button" type="button">Delete all code</button>
                   <button id="step-button" type="button">Step</button>
-                  <button class="icon-action" id="emoji-button" type="button" aria-label="Insert emoji" title="Insert emoji" aria-expanded="false">🙂</button>
                   <label class="theme-control" title="Editor theme">
                     <span>Theme</span>
                     <select id="editor-theme" aria-label="Editor theme">
@@ -72,6 +73,7 @@
                 <h2>Student App</h2>
                 <p id="runner-status">Ready</p>
               </div>
+              <button class="icon-action chat-maximize-button" id="chat-maximize-button" type="button" aria-label="Maximize chat" title="Maximize chat" aria-pressed="false">⛶</button>
             </div>
             <div class="messages" id="messages" aria-live="polite"></div>
             <form class="message-box is-hidden" id="message-form">
@@ -149,6 +151,6 @@
     <script type="module" src="node_modules/emoji-picker-element/index.js"></script>
     <script src="node_modules/jsfxr/riffwave.js"></script>
     <script src="node_modules/jsfxr/sfxr.js"></script>
-    <script src="app.js?v=tutorials-1"></script>
+    <script src="app.js?v=ui-actions-3"></script>
   </body>
 </html>

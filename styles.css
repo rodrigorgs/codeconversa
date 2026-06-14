@@ -150,6 +150,14 @@ input:disabled {
   grid-template-columns: 0 0 minmax(320px, 1fr) 0 0;
 }
 
+.workspace.chat-maximized {
+  grid-template-columns: minmax(320px, 1fr);
+}
+
+.workspace.chat-maximized.hide-left.hide-right {
+  grid-template-columns: minmax(320px, 1fr);
+}
+
 .workspace.hide-left.hide-middle {
   grid-template-columns: 0 0 0 0 minmax(230px, 1fr);
 }
@@ -173,6 +181,12 @@ input:disabled {
 .workspace.hide-middle [data-resizer="right"],
 .workspace.hide-right [data-resizer="right"] {
   display: none;
+}
+
+.workspace.chat-maximized [data-pane="middle"] {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .resizer {
@@ -287,6 +301,18 @@ input:disabled {
 
 #run-button.is-stopping:hover {
   background: #8f1d14;
+}
+
+.danger-action {
+  border-color: rgba(180, 35, 24, 0.32);
+  background: #fff1f0;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.danger-action:hover {
+  border-color: var(--danger);
+  background: #fee4e2;
 }
 
 .editor-menu {
@@ -594,6 +620,23 @@ input:disabled {
   padding: 12px 14px;
   background: #075e54;
   color: #fff;
+}
+
+.chat-header > div:not(.avatar) {
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-maximize-button {
+  flex: 0 0 auto;
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.chat-maximize-button:hover {
+  border-color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .chat-header p {

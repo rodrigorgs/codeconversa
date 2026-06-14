@@ -90,6 +90,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     runButton: document.getElementById("run-button"),
     stepButton: document.getElementById("step-button"),
     stopButton: document.getElementById("stop-button"),
+    clearCodeButton: document.getElementById("clear-code-button"),
+    chatMaximizeButton: document.getElementById("chat-maximize-button"),
     editorTheme: document.getElementById("editor-theme"),
     emojiButton: document.getElementById("emoji-button"),
     emojiPopover: document.getElementById("emoji-popover"),
@@ -2034,6 +2036,21 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     codeEditor?.focus();
   }
 
+  function clearCode() {
+    const shouldClear = window.confirm("Delete all code from the editor?\n\nThis will also replace the saved code with an empty editor.");
+    if (!shouldClear) {
+      return;
+    }
+    runtime.cancel();
+    interpreter.resetEnv();
+    clearExecutingLine();
+    setStatus("Ready");
+    setSourceCode("");
+    saveSource({ announce: false });
+    addReplEntry("Code deleted.");
+    codeEditor?.focus();
+  }
+
   function runFresh() {
     clearExecutingLine();
     saveSource({ announce: false });
@@ -2263,10 +2280,44 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     ];
     for (const [className, button] of toggles) {
       button.addEventListener("click", () => {
-        elements.workspace.classList.toggle(className);
-        button.setAttribute("aria-pressed", String(!elements.workspace.classList.contains(className)));
+        setPaneHidden(className, !elements.workspace.classList.contains(className));
+        updateChatMaximizeButton();
       });
     }
+  }
+
+  function setPaneHidden(className, hidden) {
+    elements.workspace.classList.toggle(className, hidden);
+    updatePaneToggleButtons();
+    window.requestAnimationFrame(() => codeEditor?.refresh());
+  }
+
+  function updatePaneToggleButtons() {
+    const toggles = [
+      ["hide-left", elements.toggleLeft],
+      ["hide-middle", elements.toggleMiddle],
+      ["hide-right", elements.toggleRight],
+    ];
+    for (const [className, button] of toggles) {
+      button.setAttribute("aria-pressed", String(!elements.workspace.classList.contains(className)));
+    }
+  }
+
+  function toggleChatMaximize() {
+    const maximized = elements.workspace.classList.contains("chat-maximized");
+    elements.workspace.classList.toggle("chat-maximized", !maximized);
+    setPaneHidden("hide-middle", false);
+    setPaneHidden("hide-left", !maximized);
+    setPaneHidden("hide-right", !maximized);
+    updateChatMaximizeButton();
+  }
+
+  function updateChatMaximizeButton() {
+    const maximized = elements.workspace.classList.contains("chat-maximized");
+    elements.chatMaximizeButton.setAttribute("aria-pressed", String(maximized));
+    elements.chatMaximizeButton.setAttribute("aria-label", maximized ? "Restore panes" : "Maximize chat");
+    elements.chatMaximizeButton.title = maximized ? "Restore panes" : "Maximize chat";
+    elements.chatMaximizeButton.textContent = maximized ? "↙" : "⛶";
   }
 
   function setupEmojiPicker() {
@@ -2409,6 +2460,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   });
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
   elements.stopButton?.addEventListener("click", () => interpreter.stop());
+  elements.clearCodeButton.addEventListener("click", clearCode);
+  elements.chatMaximizeButton.addEventListener("click", toggleChatMaximize);
   elements.saveButton.addEventListener("click", saveSource);
   elements.loadExampleButton.addEventListener("click", openExampleModal);
   elements.closeExampleModal.addEventListener("click", closeExampleModal);
