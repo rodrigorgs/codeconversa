@@ -6,48 +6,49 @@
     <title>CodeConversa</title>
     <link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="node_modules/codemirror/theme/material-darker.css">
-    <link rel="stylesheet" href="styles.css?v=tutorials-1">
+    <link rel="stylesheet" href="styles.css?v=mobile-editor-1">
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div>
-          <h1>CodeConversa</h1>
-          <p>Write simple JavaScript-like programs that become conversational apps.</p>
-        </div>
-        <nav class="topbar-tutorials" aria-label="Tutoriais">
-          <a href="tutorial.html?doc=programacao" target="_blank" rel="noopener">Tutorial</a>
-          <a href="tutorial.html?doc=canvas" target="_blank" rel="noopener">Canvas</a>
-        </nav>
-        <div class="topbar-actions" role="group" aria-label="Pane visibility">
-          <button class="icon-button" id="toggle-left" title="Toggle editor pane" aria-pressed="true">⌘</button>
-          <button class="icon-button" id="toggle-middle" title="Toggle app pane" aria-pressed="true">▣</button>
-          <button class="icon-button" id="toggle-right" title="Toggle inspector pane" aria-pressed="true">≡</button>
-        </div>
-      </header>
-
       <main class="workspace" id="workspace">
-        <section class="pane left-pane" data-pane="left" aria-label="Code editor and REPL">
+        <section class="pane left-pane repl-collapsed" data-pane="left" aria-label="Code editor and REPL">
           <div class="pane-header">
             <h2>Code</h2>
             <div class="run-controls">
               <span class="save-status" id="source-save-status" aria-live="polite"></span>
-              <button id="save-button" type="button" title="Save source code">Save</button>
-              <button id="load-example-button" type="button">Example</button>
-              <label class="theme-control" title="Editor theme">
-                <span>Theme</span>
-                <select id="editor-theme" aria-label="Editor theme">
-                  <option value="default">Light</option>
-                  <option value="material-darker">Dark</option>
-                </select>
-              </label>
-              <button class="icon-action" id="emoji-button" type="button" aria-label="Insert emoji" title="Insert emoji" aria-expanded="false">🙂</button>
               <button class="icon-action" id="run-button" aria-label="Run" title="Run and save">▶</button>
-              <button class="icon-action" id="step-button" aria-label="Step" title="Step">⏭</button>
-              <button class="icon-action" id="stop-button" aria-label="Stop" title="Stop">■</button>
+              <details class="editor-menu">
+                <summary class="icon-action editor-menu-button" aria-label="Menu" title="Menu">☰</summary>
+                <div class="editor-menu-panel">
+                  <button id="save-button" type="button" title="Save source code">Save</button>
+                  <button id="load-example-button" type="button">Example</button>
+                  <button id="step-button" type="button">Step</button>
+                  <button class="icon-action" id="emoji-button" type="button" aria-label="Insert emoji" title="Insert emoji" aria-expanded="false">🙂</button>
+                  <label class="theme-control" title="Editor theme">
+                    <span>Theme</span>
+                    <select id="editor-theme" aria-label="Editor theme">
+                      <option value="default">Light</option>
+                      <option value="material-darker">Dark</option>
+                    </select>
+                  </label>
+                  <div class="menu-links" aria-label="Tutorials">
+                    <a href="tutorial.html?doc=programacao" target="_blank" rel="noopener">Tutorial</a>
+                    <a href="tutorial.html?doc=canvas" target="_blank" rel="noopener">Canvas</a>
+                  </div>
+                  <div class="menu-pane-toggles" role="group" aria-label="Pane visibility">
+                    <button class="icon-button" id="toggle-left" type="button" title="Toggle editor pane" aria-pressed="true">⌘</button>
+                    <button class="icon-button" id="toggle-middle" type="button" title="Toggle app pane" aria-pressed="true">▣</button>
+                    <button class="icon-button" id="toggle-right" type="button" title="Toggle inspector pane" aria-pressed="true">≡</button>
+                  </div>
+                  <button class="is-hidden" id="stop-button" type="button" aria-label="Stop" title="Stop">Stop</button>
+                </div>
+              </details>
             </div>
           </div>
-          <textarea id="source-editor" spellcheck="false" aria-label="Source code editor"></textarea>
+          <div class="editor-area">
+            <textarea id="source-editor" spellcheck="false" aria-label="Source code editor"></textarea>
+            <button class="repl-toggle" id="repl-toggle" type="button" aria-label="Show REPL" aria-pressed="false" title="Show REPL">⌃</button>
+          </div>
           <div class="emoji-popover is-hidden" id="emoji-popover">
             <emoji-picker id="emoji-picker" class="light" data-source="node_modules/emoji-picker-element-data/en/emojibase/data.json"></emoji-picker>
           </div>

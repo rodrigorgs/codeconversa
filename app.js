@@ -80,6 +80,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   const elements = {
     workspace: document.getElementById("workspace"),
+    leftPane: document.querySelector('[data-pane="left"]'),
     source: document.getElementById("source-editor"),
     messages: document.getElementById("messages"),
     messageForm: document.getElementById("message-form"),
@@ -105,6 +106,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     replLog: document.getElementById("repl-log"),
     replForm: document.getElementById("repl-form"),
     replCommand: document.getElementById("repl-command"),
+    replToggle: document.getElementById("repl-toggle"),
     toggleLeft: document.getElementById("toggle-left"),
     toggleMiddle: document.getElementById("toggle-middle"),
     toggleRight: document.getElementById("toggle-right"),
@@ -1338,6 +1340,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       this.running = false;
       this.cancelled = false;
       this.lastResult = undefined;
+      updateRunButton();
       updateInspector(this);
     }
 
@@ -1346,6 +1349,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       this.running = false;
       this.runtime.cancel();
       clearExecutingLine();
+      updateRunButton();
       setStatus("Stopped");
       updateInspector(this);
     }
@@ -1356,6 +1360,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       }
       this.running = true;
       this.cancelled = false;
+      updateRunButton();
       setStatus("Running");
       try {
         while (this.position < this.program.length && !this.cancelled) {
@@ -1374,6 +1379,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
         }
       } finally {
         this.running = false;
+        updateRunButton();
         clearExecutingLine();
         updateInspector(this);
       }
@@ -1385,6 +1391,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
       }
       this.running = true;
       this.cancelled = false;
+      updateRunButton();
       setStatus("Stepping");
       try {
         if (this.position < this.program.length) {
@@ -1403,6 +1410,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
         }
       } finally {
         this.running = false;
+        updateRunButton();
         updateInspector(this);
       }
     }
@@ -1964,6 +1972,28 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
   }
 
+  function updateRunButton() {
+    const running = interpreter.running;
+    elements.runButton.classList.toggle("is-stopping", running);
+    elements.runButton.textContent = running ? "■" : "▶";
+    elements.runButton.setAttribute("aria-label", running ? "Stop" : "Run");
+    elements.runButton.title = running ? "Stop program" : "Run and save";
+  }
+
+  function toggleRepl(show) {
+    elements.leftPane.classList.toggle("repl-collapsed", !show);
+    elements.replToggle.setAttribute("aria-pressed", String(show));
+    elements.replToggle.setAttribute("aria-label", show ? "Hide REPL" : "Show REPL");
+    elements.replToggle.title = show ? "Hide REPL" : "Show REPL";
+    elements.replToggle.textContent = show ? "⌄" : "⌃";
+    window.requestAnimationFrame(() => {
+      codeEditor?.refresh();
+      if (show) {
+        elements.replCommand.focus();
+      }
+    });
+  }
+
   function setupExamples() {
     elements.exampleList.innerHTML = "";
     for (const example of examples) {
@@ -2370,12 +2400,21 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   });
   setupEmojiPicker();
   elements.editorTheme.addEventListener("change", () => applyEditorTheme(elements.editorTheme.value));
-  elements.runButton.addEventListener("click", runFresh);
+  elements.runButton.addEventListener("click", () => {
+    if (interpreter.running) {
+      interpreter.stop();
+      return;
+    }
+    runFresh();
+  });
   elements.stepButton.addEventListener("click", stepFreshIfNeeded);
-  elements.stopButton.addEventListener("click", () => interpreter.stop());
+  elements.stopButton?.addEventListener("click", () => interpreter.stop());
   elements.saveButton.addEventListener("click", saveSource);
   elements.loadExampleButton.addEventListener("click", openExampleModal);
   elements.closeExampleModal.addEventListener("click", closeExampleModal);
+  elements.replToggle.addEventListener("click", () => {
+    toggleRepl(elements.leftPane.classList.contains("repl-collapsed"));
+  });
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
@@ -2411,6 +2450,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   setupPaneToggles();
   setupResizers();
+  updateRunButton();
+  toggleRepl(false);
   disableMessageBox();
   updateSaveStatus();
   updateInspector(interpreter);

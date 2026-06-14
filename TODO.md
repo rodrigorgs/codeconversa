@@ -1,5 +1,12 @@
 - Use say/read or say/listen or send/receive instead of print/read?
+- Hide/show repl console by clicking on a > button on the bottom left of the source code.
+- Remove buttons on the top bar to hide/show panels and move them to the panels themselves. Also, make them work correctly.
+- Create a hamburguer menu button on the top bar and move to the menu the following: examples, theme.
+- Add an option to change the programming language being used. It can be JavaScript or Python. You'll need to implement a parser for Python
+- In the right panel, remove the Execution section.
+- Move help to a new tab in the right panel.
 - buttons to insert structures such as while (true) { ... delay(1) }, if, if/else, if/elseif/else
+- fix the jitter when the input is hidden and shown again. Maybe reserve a space for the input?
 - error feedback while writing (e.g., unmatched parens)
 - global variables (doesn't need to use let)
 - repl: up/down arrow to recover command history
