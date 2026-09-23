@@ -36,8 +36,34 @@ drawLine(20, 20, 220, 140, "#2563eb")
 drawLine(220, 20, 20, 140, "#dc2626")
 drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
+  const pythonStarterCode = `name = read("What's your name?")
+react("👋")
+print("Hi", name)
+print("Your name in uppercase is", name.upper())
+print("Your name has", len(name), "letters")
+age = readNumber("How old are you?")
+react("👍")
+if age >= 13:
+    print("You are a teenager.")
+else:
+    print("You are", age, "years old.")
+for i in range(1, 4):
+    delay(1)
+    print("Count", i)
+countdown = 3
+while countdown > 0:
+    print("Countdown", countdown)
+    countdown = countdown - 1
+mood = readChoice("How are you feeling?", ["Great", "Okay", "Tired"])
+react("✅")
+print("Mood:", mood)
+colors = ["red", "green", "blue"]
+print("First color:", colors[0])
+print("There are", len(colors), "colors")`;
+
   const appStoragePrefix = "intro-prog.";
-  const sourceStorageKey = `${appStoragePrefix}source`;
+  const legacySourceStorageKey = `${appStoragePrefix}source`;
+  const languageStorageKey = `${appStoragePrefix}language`;
   const editorThemeStorageKey = `${appStoragePrefix}editorTheme`;
   const userStoragePrefix = `${appStoragePrefix}user.`;
   const examples = [
@@ -82,6 +108,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     workspace: document.getElementById("workspace"),
     leftPane: document.querySelector('[data-pane="left"]'),
     source: document.getElementById("source-editor"),
+    languageSelect: document.getElementById("language-select"),
+    languageAvatar: document.getElementById("language-avatar"),
     messages: document.getElementById("messages"),
     messageForm: document.getElementById("message-form"),
     choiceList: document.getElementById("choice-list"),
@@ -909,6 +937,117 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     return new ProgramParser(source).parseProgram();
   }
 
+  function translatePythonExpression(source) {
+    let result = "";
+    let index = 0;
+    let quote = null;
+    while (index < source.length) {
+      const char = source[index];
+      if (quote) {
+        result += char;
+        if (char === "\\") {
+          index += 1;
+          result += source[index] || "";
+        } else if (char === quote) {
+          quote = null;
+        }
+        index += 1;
+        continue;
+      }
+      if (char === "\"" || char === "'") {
+        quote = char;
+        result += char;
+        index += 1;
+        continue;
+      }
+      const word = source.slice(index).match(/^[A-Za-z_][A-Za-z0-9_]*/)?.[0];
+      if (word) {
+        const replacements = { and: "&&", or: "||", not: "!", True: "true", False: "false", None: "null", range: "pythonRange" };
+        result += replacements[word] || word;
+        index += word.length;
+        continue;
+      }
+      result += char;
+      index += 1;
+    }
+    result = result
+      .replace(/\.upper\s*\(/g, ".toUpperCase(")
+      .replace(/\.lower\s*\(/g, ".toLowerCase(")
+      .replace(/\.strip\s*\(/g, ".trim(")
+      .replace(/\blen\s*\(\s*([A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]+\])?)\s*\)/g, "$1.length");
+    return result;
+  }
+
+  function parsePythonProgram(source) {
+    const lines = source.replace(/\t/g, "    ").split(/\r?\n/).map((raw, index) => ({
+      raw,
+      text: raw.trim(),
+      indent: raw.match(/^ */)[0].length,
+      lineNumber: index + 1,
+    }));
+
+    function parseBlock(start, indent) {
+      const statements = [];
+      let cursor = start;
+      while (cursor < lines.length) {
+        const line = lines[cursor];
+        if (!line.text || line.text.startsWith("#")) {
+          cursor += 1;
+          continue;
+        }
+        if (line.indent < indent) break;
+        if (line.indent > indent) throw new Error(`Unexpected indentation on line ${line.lineNumber}.`);
+        if (/^(else|elif)\b/.test(line.text)) break;
+
+        const header = line.text.match(/^(if|while)\s+(.+):$/);
+        const forHeader = line.text.match(/^for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+(.+):$/);
+        if (header || forHeader) {
+          const next = lines.slice(cursor + 1).find((candidate) => candidate.text && !candidate.text.startsWith("#"));
+          if (!next || next.indent <= indent) throw new Error(`Expected an indented block after line ${line.lineNumber}.`);
+          const bodyResult = parseBlock(cursor + 1, next.indent);
+          cursor = bodyResult.cursor;
+          if (forHeader) {
+            statements.push({ type: "forOf", name: forHeader[1], iterable: parseExpression(translatePythonExpression(forHeader[2])), body: bodyResult.statements, source: line.text, lineNumber: line.lineNumber });
+            continue;
+          }
+          const statement = { type: header[1], condition: parseExpression(translatePythonExpression(header[2])), body: bodyResult.statements, source: line.text, lineNumber: line.lineNumber };
+          if (header[1] === "if") {
+            statement.consequent = statement.body;
+            statement.alternate = [];
+            delete statement.body;
+            const alternateLine = lines[cursor];
+            if (alternateLine && alternateLine.indent === indent && /^(else:|elif\s+.+:)$/.test(alternateLine.text)) {
+              const alternateNext = lines.slice(cursor + 1).find((candidate) => candidate.text && !candidate.text.startsWith("#"));
+              if (!alternateNext || alternateNext.indent <= indent) throw new Error(`Expected an indented block after line ${alternateLine.lineNumber}.`);
+              const alternateResult = parseBlock(cursor + 1, alternateNext.indent);
+              if (alternateLine.text.startsWith("elif ")) {
+                statement.alternate = [{ type: "if", condition: parseExpression(translatePythonExpression(alternateLine.text.slice(5, -1))), consequent: alternateResult.statements, alternate: [], source: alternateLine.text, lineNumber: alternateLine.lineNumber }];
+              } else {
+                statement.alternate = alternateResult.statements;
+              }
+              cursor = alternateResult.cursor;
+            }
+          }
+          statements.push(statement);
+          continue;
+        }
+        if (line.text.endsWith(":")) throw new Error(`Unsupported Python block on line ${line.lineNumber}.`);
+        const translated = translatePythonExpression(line.text);
+        const assignmentIndex = findTopLevelAssignment(translated);
+        const statementSource = assignmentIndex > -1 && !translated.slice(0, assignmentIndex).includes("[") ? `let ${translated}` : translated;
+        statements.push(parseStatement(statementSource, line.lineNumber));
+        cursor += 1;
+      }
+      return { statements, cursor };
+    }
+
+    return parseBlock(0, 0).statements;
+  }
+
+  function parseSource(source) {
+    return currentLanguage === "python" ? parsePythonProgram(source) : parseProgram(source);
+  }
+
   class Environment {
     constructor(parent = null) {
       this.parent = parent;
@@ -1329,7 +1468,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
 
     load(source) {
-      this.program = parseProgram(source);
+      this.program = parseSource(source);
       this.position = 0;
       this.cancelled = false;
       this.lastResult = undefined;
@@ -1774,6 +1913,25 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     return result;
   }
 
+  function createPythonRange(args) {
+    if (args.length < 1 || args.length > 3) {
+      throw new Error("range needs one, two, or three numbers.");
+    }
+    const start = args.length === 1 ? 0 : Number(args[0]);
+    const stop = args.length === 1 ? Number(args[0]) : Number(args[1]);
+    const step = args.length === 3 ? Number(args[2]) : 1;
+    if (!Number.isFinite(start) || !Number.isFinite(stop) || !Number.isFinite(step)) {
+      throw new Error("range needs numbers.");
+    }
+    if (step === 0) throw new Error("range step cannot be 0.");
+    const result = [];
+    for (let value = start; step > 0 ? value < stop : value > stop; value += step) {
+      result.push(value);
+      if (result.length > maxLoopIterations) throw new Error(`range stopped after ${maxLoopIterations} values.`);
+    }
+    return result;
+  }
+
   const stringMethods = {
     toUpperCase: (text) => text.toUpperCase(),
     toLowerCase: (text) => text.toLowerCase(),
@@ -1845,6 +2003,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     if (name === "delete") return deleteValue(args[0]);
     if (name === "deleteAll") return deleteAllValues();
     if (name === "range") return createRange(args);
+    if (name === "pythonRange") return createPythonRange(args);
     if (name === "randomInt") {
       const min = Number(args[0]);
       const max = Number(args[1]);
@@ -1864,6 +2023,15 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   let variableCreatedAt = new Map();
   let visibleVariableNames = new Set();
   let storageAvailable = true;
+  let currentLanguage = "javascript";
+
+  function sourceStorageKey(language = currentLanguage) {
+    return `${appStoragePrefix}source.${language}`;
+  }
+
+  function starterFor(language) {
+    return language === "python" ? pythonStarterCode : starterCode;
+  }
 
   function getSourceCode() {
     return codeEditor ? codeEditor.getValue() : elements.source.value;
@@ -1881,7 +2049,8 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
 
   function loadSavedSource() {
     try {
-      return window.localStorage.getItem(sourceStorageKey);
+      return window.localStorage.getItem(sourceStorageKey()) ??
+        (currentLanguage === "javascript" ? window.localStorage.getItem(legacySourceStorageKey) : null);
     } catch {
       storageAvailable = false;
       return null;
@@ -1891,7 +2060,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   function saveSource({ announce = true } = {}) {
     const source = getSourceCode();
     try {
-      window.localStorage.setItem(sourceStorageKey, source);
+      window.localStorage.setItem(sourceStorageKey(), source);
       storageAvailable = true;
       lastSavedSource = source;
       updateSaveStatus();
@@ -1930,6 +2099,33 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     codeEditor.setOption("theme", theme);
     elements.editorTheme.value = theme;
     saveEditorTheme(theme);
+  }
+
+  function loadLanguage() {
+    try {
+      return window.localStorage.getItem(languageStorageKey) === "python" ? "python" : "javascript";
+    } catch {
+      return "javascript";
+    }
+  }
+
+  function switchLanguage(language) {
+    if (language === currentLanguage) return;
+    if (interpreter.running) interpreter.stop();
+    saveSource({ announce: false });
+    currentLanguage = language;
+    try { window.localStorage.setItem(languageStorageKey, language); } catch { /* Keep working without persistence. */ }
+    lastSavedSource = loadSavedSource();
+    setSourceCode(lastSavedSource ?? starterFor(language));
+    codeEditor.setOption("mode", language === "python" ? "python" : "javascript");
+    codeEditor.setOption("indentUnit", language === "python" ? 4 : 2);
+    elements.languageAvatar.textContent = language === "python" ? "PY" : "JS";
+    elements.replCommand.placeholder = language === "python" ? "Python expression" : "JavaScript expression";
+    interpreter.resetEnv();
+    elements.messages.innerHTML = "";
+    addMessage("system", `${language === "python" ? "Python" : "JavaScript"} ready to run.`);
+    updateSaveStatus();
+    codeEditor.focus();
   }
 
   function highlightExecutingLine(statement) {
@@ -2031,7 +2227,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     if (!shouldReplace) {
       return;
     }
-    setSourceCode(example.source);
+    setSourceCode(currentLanguage === "python" && example.id === "default" ? pythonStarterCode : example.source);
     closeExampleModal();
     codeEditor?.focus();
   }
@@ -2095,7 +2291,9 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     const previousHighlightExecution = interpreter.highlightExecution;
     interpreter.highlightExecution = false;
     try {
-      const statements = /^(if|while|for)\b/.test(trimmed) ? parseProgram(trimmed) : [parseStatement(trimmed, 1)];
+      const statements = currentLanguage === "python"
+        ? parsePythonProgram(trimmed)
+        : (/^(if|while|for)\b/.test(trimmed) ? parseProgram(trimmed) : [parseStatement(trimmed, 1)]);
       let result = undefined;
       for (const statement of statements) {
         result = await interpreter.execute(statement);
@@ -2424,17 +2622,20 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
   }
 
   setupExamples();
+  currentLanguage = loadLanguage();
+  elements.languageSelect.value = currentLanguage;
+  elements.languageAvatar.textContent = currentLanguage === "python" ? "PY" : "JS";
   lastSavedSource = loadSavedSource();
-  elements.source.value = lastSavedSource ?? starterCode;
+  elements.source.value = lastSavedSource ?? starterFor(currentLanguage);
   const savedEditorTheme = loadEditorTheme();
   elements.editorTheme.value = savedEditorTheme;
   codeEditor = CodeMirror.fromTextArea(elements.source, {
-    mode: "javascript",
+    mode: currentLanguage === "python" ? "python" : "javascript",
     theme: savedEditorTheme,
     lineNumbers: true,
     lineWrapping: true,
-    tabSize: 2,
-    indentUnit: 2,
+    tabSize: currentLanguage === "python" ? 4 : 2,
+    indentUnit: currentLanguage === "python" ? 4 : 2,
     autofocus: true,
     extraKeys: {
       "Ctrl-Enter": runFresh,
@@ -2450,6 +2651,7 @@ drawText(50, 145, "Canvas!", { size: 22, color: "#111827", font: "serif" })`;
     }
   });
   setupEmojiPicker();
+  elements.languageSelect.addEventListener("change", () => switchLanguage(elements.languageSelect.value));
   elements.editorTheme.addEventListener("change", () => applyEditorTheme(elements.editorTheme.value));
   elements.runButton.addEventListener("click", () => {
     if (interpreter.running) {

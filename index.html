@@ -13,7 +13,13 @@
       <main class="workspace" id="workspace">
         <section class="pane left-pane repl-collapsed" data-pane="left" aria-label="Code editor and REPL">
           <div class="pane-header">
-            <h2>Code</h2>
+            <div class="code-heading">
+              <h2>Code</h2>
+              <select id="language-select" aria-label="Programming language" title="Programming language">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+              </select>
+            </div>
             <div class="run-controls">
               <span class="save-status" id="source-save-status" aria-live="polite"></span>
               <button class="icon-action" id="run-button" aria-label="Run" title="Run and save">▶</button>
@@ -68,7 +74,7 @@
         <section class="pane chat-pane" data-pane="middle" aria-label="Conversation app">
           <div class="phone-frame">
             <div class="chat-header">
-              <div class="avatar" aria-hidden="true">JS</div>
+              <div class="avatar" id="language-avatar" aria-hidden="true">JS</div>
               <div>
                 <h2>Student App</h2>
                 <p id="runner-status">Ready</p>
@@ -148,6 +154,7 @@
     </dialog>
     <script src="node_modules/codemirror/lib/codemirror.js"></script>
     <script src="node_modules/codemirror/mode/javascript/javascript.js"></script>
+    <script src="node_modules/codemirror/mode/python/python.js"></script>
     <script type="module" src="node_modules/emoji-picker-element/index.js"></script>
     <script src="node_modules/jsfxr/riffwave.js"></script>
     <script src="node_modules/jsfxr/sfxr.js"></script>

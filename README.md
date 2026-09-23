@@ -16,7 +16,7 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000`.
 
-The code editor uses CodeMirror, installed locally through npm so the page can run without a CDN dependency.
+The code editor uses CodeMirror, installed locally through npm so the page can run without a CDN dependency. Use the language selector beside “Code” to write and run either JavaScript or Python; each language keeps its own saved source.
 
 The Save button stores the current source code in this browser's `localStorage`. `Ctrl+S` and `Cmd+S` also save, and Run saves before starting the program. When the page reloads, the editor restores the last saved code. A `*` beside Save means the current editor contents are not saved. The Example button opens the example picker and asks for confirmation before replacing the editor contents.
 
